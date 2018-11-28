@@ -1,0 +1,4 @@
+_*
+*.db
+bin/service.js*
+package-lock.json
