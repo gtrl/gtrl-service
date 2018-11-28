@@ -1,0 +1,18 @@
+{
+    "name": "gtrl",
+    "version": "0.1.0",
+    "description": "Sensor data logging service",
+    "repository": "https://github.com/gtrl/gtrl-service",
+    "homepage": "https://github.com/gtrl/gtrl-service#readme",
+    "license": "OM",
+    "bugs": {
+        "url": "https://github.com/gtrl/gtrl-service/issues"
+    },
+    "dependencies": {
+        "sqlite3": "^4.0.4"
+    },
+    "main": "./bin/service.js",
+    "scripts": {
+        "service": "node ./bin/service.js"
+    }
+}
