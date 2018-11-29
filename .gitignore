@@ -1,4 +1,4 @@
 _*
 *.db
-bin/service.js*
+service.js*
 package-lock.json

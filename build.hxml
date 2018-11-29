@@ -1,17 +1,18 @@
--js bin/service.js
+-js service.js
 -main gtrl.Service
+-lib hxargs
 -lib hxnodejs
 #-lib hxnodejs-dht-sensor
--lib hxnodejs-serialport
+#-lib hxnodejs-serialport
 -lib hxnodejs-sqlite3
 #-lib hxnodejs-ws
--lib hxargs
 #-lib om.log
+-lib om.net
 -lib om.term
 -cp src
 -D gtrl_service
-#-D source-header=
-#--macro includeFile('res/shebang_header')
 -dce full
 -debug
-#-cmd chmod +x bin/gtrl
+#-D source-header=
+#--macro includeFile('shebang_header')
+#-cmd chmod +x bin/service.js
