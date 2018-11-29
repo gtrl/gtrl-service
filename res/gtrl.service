@@ -4,8 +4,8 @@ Documentation=https://github.com/gtrl/gtrl-service/blob/master/README.md
 After=network.target
 
 [Service]
-User=nobody
-#Group=nogroup
+User=pi
+#Group=gpio
 WorkingDirectory=/usr/lib/gtrl
 #Environment=PATH=/usr/bin:/usr/local/bin
 #Environment=NODE_ENV=production
