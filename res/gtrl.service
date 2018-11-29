@@ -1,0 +1,16 @@
+[Unit]
+Description=Sensor data logging service
+Documentation=https://github.com/gtrl/gtrl-service/blob/master/README.md
+After=network.target
+
+[Service]
+User=nobody
+#Group=nogroup
+WorkingDirectory=/usr/lib/gtrl
+#Environment=PATH=/usr/bin:/usr/local/bin
+#Environment=NODE_ENV=production
+ExecStart=/usr/bin/gtrl --service
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
