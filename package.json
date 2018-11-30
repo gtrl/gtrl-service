@@ -1,18 +1,19 @@
 {
     "name": "gtrl",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "Sensor data logging service",
-    "repository": "https://github.com/gtrl/gtrl-service",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/gtrl/gtrl-service"
+    },
     "homepage": "https://github.com/gtrl/gtrl-service#readme",
-    "license": "OM",
+    "license": "Public",
     "bugs": {
         "url": "https://github.com/gtrl/gtrl-service/issues"
     },
     "dependencies": {
-        "sqlite3": "^4.0.4"
+        "sqlite3": "^4.0.4",
+        "ws": "^5.2.2"
     },
-    "main": "./bin/service.js",
-    "scripts": {
-        "service": "node ./bin/service.js"
-    }
+    "main": "service.js"
 }

@@ -14,38 +14,77 @@ class Service {
 		host: 'auto',
 		port: 9000,
 		db: 'log.db',
-		sensors: [
+		rooms: [
 			{
-				name: "top",
-				type: DHT22,
-				pin: 17,
-				pause: 1000
-			},
-			/*
-			{
-				name: "mid",
-				type: DHT22,
-				pin: 23,
-				pause: 10000
-			},
-			{
-				name: "bottom",
-				type: DHT22,
-				pin: 24,
-				pause: 10000
+				name: "tent",
+				size: { w: 120, h: 200, d: 120 },
+				sensors: [
+					{
+						name: "top",
+						type: DHT22,
+						pin: 17,
+						pause: 10000,
+						position: "tl",
+
+					}
+				]
 			}
-			*/
 		]
 	};
 
-	static var sensors = new Array<Sensor>();
+	static var rooms = new Array<Room>();
 	static var db : Database;
+	static var web : Web;
+
+	static function start() : Promise<Nil> {
+
+		return initDatabase( config.db ).then( function(_) {
+
+			for( i in 0...config.rooms.length ) {
+				var r = config.rooms[i];
+				var sensors = new Array<Sensor>();
+				for( s in r.sensors ) {
+					var sensor = new Sensor( s.name, s.type, s.pin, s.pause );
+					sensors.push( sensor );
+				}
+				var room = new Room( r.name, r.size, sensors );
+				room.onData = function(sensor,data){
+					//handleSensorData( sensor, r );
+					handleRoomData( room, sensor, data );
+				};
+				room.onError = function(e:Sensor.Error){
+					println( e );
+				};
+				rooms.push( room );
+			}
+
+			web = new Web( );
+			web.on( 'request', (req,res) -> {
+				var url = Url.parse( req.url, true );
+				trace( url );
+				db.all( "SELECT * FROM dht", (e,rows:Array<Dynamic>) -> {
+					if( e != null ) trace( e );
+					res.writeHead( 200, {
+						'Access-Control-Allow-Origin': '*',
+						'Content-Type': 'application/json'
+					} );
+					res.end( Json.stringify( rows ) );
+				});
+			} );
+			web.listen( config.port, config.host );
+
+			for( room in rooms ) room.start();
+
+			return nil;
+		});
+	}
 
 	static function initDatabase( file : String ) : Promise<Nil> {
 		return if( db != null ) Promise.resolve() else {
 			new Promise( (resolve,reject) -> {
 				db = new Database( file );
-				db.run( "CREATE TABLE IF NOT EXISTS dht (time REAL,sensor TEXT,temperature REAL,humidity REAL)", function(e){
+				//db.run( "CREATE TABLE IF NOT EXISTS dht (time REAL,sensor TEXT,temperature REAL,humidity REAL)", function(e){
+				db.run( "CREATE TABLE IF NOT EXISTS dht (time REAL,room TEXT,sensor TEXT,temperature REAL,humidity REAL)", function(e){
 					if( e != null ) reject( e ) else resolve( nil );
 				});
 			} );
@@ -53,12 +92,51 @@ class Service {
 	}
 
 	static function stop() {
+		for( r in rooms )
+			r.stop();
 		if( db != null ) {
 			db.close();
 		}
-		//...
+		if( web != null ) {
+			web.close();
+		}
 	}
 
+	static function handleRoomData( room : Room, sensor : Sensor, data : Sensor.Data ) {
+
+		var now = Date.now();
+		var time = now.getTime();
+
+		if( !isSystemService ) print( DateTools.format( now, "%H:%M:%S" )+' ' );
+		println( '${room.name}:${sensor.name} temperature=${data.temperature} humidity=${data.humidity}' );
+
+		if( db != null ) {
+			var sql = "INSERT INTO dht VALUES ($time,$room,$sensor,$temperature,$humidity)";
+			db.run( sql, {
+				'$time': time,
+				'$room': room.name,
+				'$sensor': sensor.name,
+				'$temperature': data.temperature,
+				'$humidity': data.humidity
+			}, function(e){
+				if( e != null ) {
+					trace( e );
+				}
+			} );
+		}
+
+		if( web != null ) {
+			web.broadcast({
+				time: time,
+				room: room.name,
+				sensor: sensor.name,
+				temperature: data.temperature,
+				humidity: data.humidity
+			});
+		}
+	}
+
+	/*
 	static function handleSensorData( sensor : Sensor, data : Sensor.Data ) {
 
 		var now = Date.now();
@@ -80,6 +158,7 @@ class Service {
 			} );
 		}
 	}
+	*/
 
 	static function exit( ?msg : Dynamic, code = 0 ) {
 		if( msg != null ) Sys.println( msg );
@@ -92,15 +171,14 @@ class Service {
 	static function main() {
 
 		if( !System.is( 'linux' ) ) exit( 'not linux', 1 );
-		#if release
-		if( !System.isRaspberryPi()) exit( 'not a rasperry pi device', 1 );
+		#if gtrl_release
+		if( !System.isRaspberryPi() ) exit( 'not a rasperry pi device', 1 );
 		#end
 
-		var args = Sys.args();
-		//var path = Sys.getEnv( 'GTRL_PATH' );
 
 		var argsHandler : {getDoc:Void->String,parse:Array<Dynamic>->Void};
 		argsHandler = hxargs.Args.generate([
+			//@doc("Path to config") ["-config"] => (file:String) -> config.db = file,
 			@doc("Path to db") ["-db"] => (file:String) -> config.db = file,
 			@doc("Host name/address")["-host"] => (name:String) -> config.host = name,
 			@doc("Port number")["-port"] => (number:Int) -> config.port = number,
@@ -112,6 +190,7 @@ class Service {
 			_ => arg -> exit( 'Unknown parameter: $arg', 1 )
 		]);
 
+		var args = Sys.args();
 		switch args[0] {
 		case 'config': exit( config );
 		default: argsHandler.parse( args );
@@ -124,33 +203,8 @@ class Service {
 		if( config.host == null )
 			exit( 'failed to resolve ip address', 1 );
 
-		initDatabase( config.db ).then( function(_) {
-
-			for( i in 0...config.sensors.length ) {
-				var s = config.sensors[i];
-				var sensor = new Sensor( s.name, s.type, s.pin, s.pause );
-				sensor.onData = function(r){
-					handleSensorData( sensor, r );
-				};
-				sensor.onError = function(e:Sensor.Error){
-					println( e );
-				};
-				sensor.start();
-			}
-
-			var server = js.node.Http.createServer( (req,res) -> {
-				//trace(req);
-				var url = Url.parse( req.url, true );
-				db.all( "SELECT * FROM dht", (e,rows:Array<Dynamic>) -> {
-					if( e != null ) trace( e );
-					res.writeHead( 200, {
-						'Access-Control-Allow-Origin': '*',
-						'Content-Type': 'application/json'
-					} );
-					res.end( Json.stringify( rows ) );
-				});
-			});
-			server.listen( config.port, config.host );
+		start().then( e -> {
+			println( 'service started' );
 		});
 
 		/*

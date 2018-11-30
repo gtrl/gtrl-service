@@ -5,7 +5,7 @@
 #-lib hxnodejs-dht-sensor
 #-lib hxnodejs-serialport
 -lib hxnodejs-sqlite3
-#-lib hxnodejs-ws
+-lib hxnodejs-ws
 #-lib om.log
 -lib om.net
 -lib om.term
