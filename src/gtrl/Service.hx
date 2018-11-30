@@ -2,9 +2,11 @@ package gtrl;
 
 import js.npm.Sqlite3;
 import js.npm.sqlite3.*;
+//import js.npm.serialport.SerialPort;
+import js.node.http.IncomingMessage;
+import js.node.http.ServerResponse;
 import om.System;
 import om.Term;
-import gtrl.Sensor;
 
 class Service {
 
@@ -15,6 +17,7 @@ class Service {
 		port: 9000,
 		db: 'log.db',
 		rooms: [
+			/*
 			{
 				name: "tent",
 				size: { w: 120, h: 200, d: 120 },
@@ -25,75 +28,79 @@ class Service {
 						pin: 17,
 						pause: 10000,
 						position: "tl",
-
 					}
+				]
+			}
+			*/
+			{
+				name: "lab",
+				size: { w: 500, h: 400, d: 300 },
+				sensors: [
+					{
+						name: "top",
+						type: "dht",
+						//position: "t",
+						interval: 3000,
+						driver: {
+							type: "dummy"
+						}
+					},
+				/*
+					{
+						name: "top",
+						type: "dht",
+						//position: "t",
+						interval: 3000,
+						driver: {
+							type: "process",
+							options: {
+								cmd: "bin/read_dht.py",
+								args: ['17']
+							}
+						}
+					},
+					*/
+					/*
+					{
+						name: "top",
+						type: "dht",
+						//position: "t",
+						interval: 10000,
+						driver: {
+							type: "serial",
+							options: {
+								path: "/dev/ttyACM0",
+								baud: 115200,
+								pin: 1
+							}
+						}
+					},
+					{
+						name: "bot",
+						type: "dht",
+						//position: "b",
+						interval: 10000,
+						driver: {
+							type: "serial",
+							options: {
+								path: "/dev/ttyACM0",
+								baud: 115200,
+								pin: 2
+							}
+						}
+					}
+					*/
 				]
 			}
 		]
 	};
 
-	static var rooms = new Array<Room>();
+	static var rooms : Array<Room>;
 	static var db : Database;
 	static var web : Web;
 
-	static function start() : Promise<Nil> {
-
-		return initDatabase( config.db ).then( function(_) {
-
-			for( i in 0...config.rooms.length ) {
-				var r = config.rooms[i];
-				var sensors = new Array<Sensor>();
-				for( s in r.sensors ) {
-					var sensor = new Sensor( s.name, s.type, s.pin, s.pause );
-					sensors.push( sensor );
-				}
-				var room = new Room( r.name, r.size, sensors );
-				room.onData = function(sensor,data){
-					//handleSensorData( sensor, r );
-					handleRoomData( room, sensor, data );
-				};
-				room.onError = function(e:Sensor.Error){
-					println( e );
-				};
-				rooms.push( room );
-			}
-
-			web = new Web( );
-			web.on( 'request', (req,res) -> {
-				var url = Url.parse( req.url, true );
-				trace( url );
-				db.all( "SELECT * FROM dht", (e,rows:Array<Dynamic>) -> {
-					if( e != null ) trace( e );
-					res.writeHead( 200, {
-						'Access-Control-Allow-Origin': '*',
-						'Content-Type': 'application/json'
-					} );
-					res.end( Json.stringify( rows ) );
-				});
-			} );
-			web.listen( config.port, config.host );
-
-			for( room in rooms ) room.start();
-
-			return nil;
-		});
-	}
-
-	static function initDatabase( file : String ) : Promise<Nil> {
-		return if( db != null ) Promise.resolve() else {
-			new Promise( (resolve,reject) -> {
-				db = new Database( file );
-				//db.run( "CREATE TABLE IF NOT EXISTS dht (time REAL,sensor TEXT,temperature REAL,humidity REAL)", function(e){
-				db.run( "CREATE TABLE IF NOT EXISTS dht (time REAL,room TEXT,sensor TEXT,temperature REAL,humidity REAL)", function(e){
-					if( e != null ) reject( e ) else resolve( nil );
-				});
-			} );
-		}
-	}
-
 	static function stop() {
-		for( r in rooms )
-			r.stop();
+		//for( r in rooms ) r.stop();
 		if( db != null ) {
 			db.close();
 		}
@@ -102,63 +109,42 @@ class Service {
 		}
 	}
 
-	static function handleRoomData( room : Room, sensor : Sensor, data : Sensor.Data ) {
+	static function handleSensorData<T>( room : Room, sensor : Sensor<T>, data : T ) {
 
 		var now = Date.now();
 		var time = now.getTime();
 
 		if( !isSystemService ) print( DateTools.format( now, "%H:%M:%S" )+' ' );
-		println( '${room.name}:${sensor.name} temperature=${data.temperature} humidity=${data.humidity}' );
+		print( '${room.name}:${sensor.name} ' );
+		println( Reflect.fields( data ).map( f -> return f+':'+Reflect.field( data, f ) ) );
 
 		if( db != null ) {
-			var sql = "INSERT INTO dht VALUES ($time,$room,$sensor,$temperature,$humidity)";
-			db.run( sql, {
-				'$time': time,
-				'$room': room.name,
-				'$sensor': sensor.name,
-				'$temperature': data.temperature,
-				'$humidity': data.humidity
-			}, function(e){
-				if( e != null ) {
-					trace( e );
+			switch sensor.type {
+			case 'dht':
+				//var d : gtrl.sensor.DHTSensor.Data = cast data;
+				var names : Array<String> = ["time","room","sensor"];
+				var values : Array<Dynamic> = [time,room.name,sensor.name];
+				for( f in Reflect.fields( data ) ) {
+					var v = Reflect.field( data, f );
+					names.push( f );
+					values.push( v );
 				}
-			} );
+				var sql = "INSERT INTO "+sensor.type+" VALUES ("+names.map(s->return "$"+s).join(',')+")";
+				db.run( sql, values, function(e){
+					if( e != null ) trace( e );
+				} );
+			}
 		}
 
 		if( web != null ) {
 			web.broadcast({
 				time: time,
 				room: room.name,
-				sensor: sensor.name,
-				temperature: data.temperature,
-				humidity: data.humidity
+				sensor: { name: sensor.name, type: sensor.type },
+				data: data
 			});
 		}
 	}
-
-	/*
-	static function handleSensorData( sensor : Sensor, data : Sensor.Data ) {
-
-		var now = Date.now();
-		var time = now.getTime();
-
-		println( '${sensor.name} temperature=${data.temperature} humidity=${data.humidity}' );
-
-		if( db != null ) {
-			var sql = "INSERT INTO dht VALUES ($time,$sensor,$temperature,$humidity)";
-			db.run( sql, {
-				'$time': time,
-				'$sensor': sensor.name,
-				'$temperature': data.temperature,
-				'$humidity': data.humidity
-			}, function(e){
-				if( e != null ) {
-					trace( e );
-				}
-			} );
-		}
-	}
-	*/
 
 	static function exit( ?msg : Dynamic, code = 0 ) {
 		if( msg != null ) Sys.println( msg );
@@ -174,7 +160,6 @@ class Service {
 		#if gtrl_release
 		if( !System.isRaspberryPi() ) exit( 'not a rasperry pi device', 1 );
 		#end
-
 
 		var argsHandler : {getDoc:Void->String,parse:Array<Dynamic>->Void};
 		argsHandler = hxargs.Args.generate([
@@ -203,31 +188,79 @@ class Service {
 		if( config.host == null )
 			exit( 'failed to resolve ip address', 1 );
 
-		start().then( e -> {
-			println( 'service started' );
-		});
+		db = new Database( config.db );
+		db.run( "CREATE TABLE IF NOT EXISTS dht (time REAL,room TEXT,sensor TEXT,temperature REAL,humidity REAL)", function(e){
 
-		/*
-		var readline = js.node.Readline.createInterface( { input: process.stdin } );
-		readline.on( 'line', function(line) {
-			var args = ~/(\s+)/.split( line );
-			var cmd = args[0];
-			switch cmd {
-			case 'clear':
-				Term.clear();
-				print('❯ ');
-			case 'config':
-				println( config );
-			case 'h','help':
-				println('NOHELP!');
-				print('❯ ');
-			case 'sensors':
-			case _:
+			exitIfError( e );
+
+			web = new Web( );
+			web.on( 'request', (req:IncomingMessage,res:ServerResponse) -> {
+				var url = Url.parse( req.url, true );
+				//trace( url );
+				if( req.method == 'POST' ) {
+					var str = '';
+					req.on( 'data', function(c) str += c );
+					req.on( 'end', function() {
+						var data = Json.parse( str );
+						var time = Date.fromTime( data.time );
+						trace(time);
+						db.all( "SELECT * FROM dht", (e,rows:Array<Dynamic>) -> {
+							if( e != null ) trace( e );
+							res.writeHead( 200, {
+								'Access-Control-Allow-Origin': '*',
+								'Content-Type': 'application/json'
+							} );
+							res.end( Json.stringify( rows ) );
+						});
+					});
+				}
+
+			} );
+			web.listen( config.port, config.host );
+
+			rooms = [];
+			for( r in config.rooms ) {
+				var sensors = new Array<Sensor<Any>>();
+				for( s in r.sensors ) {
+					var driver : gtrl.sensor.Driver = null;
+					var d : Dynamic = s.driver;
+					switch d.type {
+					case 'dummy':
+						driver = new gtrl.sensor.driver.DummyDriver();
+					case 'process':
+						driver = new gtrl.sensor.driver.ProcessDriver( d.options.cmd, d.options.args );
+					case 'serial':
+						driver = new gtrl.sensor.driver.SerialDriver( d.options.path, d.options.pin );
+					default:
+						trace('driver not found');
+					}
+					if( driver == null ) {
+						trace('driver not found');
+					}
+					switch s.type {
+					case 'dht':
+						var sensor = new gtrl.sensor.DHTSensor( s.name, driver, s.interval );
+						sensors.push( cast sensor );
+					}
+				}
+				rooms.push( new Room( r.name, r.size, sensors ) );
 			}
+
+			function initRoom( i : Int ) {
+				var room = rooms[i];
+				room.init().then( e -> {
+					println( "ROOM["+room.name+"] READY");
+					room.onData = (s,d) -> handleSensorData( room, s, d );
+					if( ++i < rooms.length ) {
+						initRoom( i );
+					} else {
+						trace("ALL ROOMS READY");
+						for( room in rooms ) room.start();
+					}
+				});
+			}
+			initRoom(0);
+
 		});
-		print('❯ ');
-		*/
 	}
-
-
 }

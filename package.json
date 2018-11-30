@@ -7,11 +7,12 @@
         "url": "https://github.com/gtrl/gtrl-service"
     },
     "homepage": "https://github.com/gtrl/gtrl-service#readme",
-    "license": "Public",
+    "license": "MIT",
     "bugs": {
         "url": "https://github.com/gtrl/gtrl-service/issues"
     },
     "dependencies": {
+        "serialport": "^7.1.0",
         "sqlite3": "^4.0.4",
         "ws": "^5.2.2"
     },

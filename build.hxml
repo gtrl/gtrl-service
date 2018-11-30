@@ -3,7 +3,7 @@
 -lib hxargs
 -lib hxnodejs
 #-lib hxnodejs-dht-sensor
-#-lib hxnodejs-serialport
+-lib hxnodejs-serialport
 -lib hxnodejs-sqlite3
 -lib hxnodejs-ws
 #-lib om.log
