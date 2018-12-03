@@ -57,28 +57,12 @@ class ProcessDriver extends Driver {
 					cachePosition = 0;
 					callback( data );
 				}
-				/*
-				if( cachePosition == MSG_SIZE ) {
-					trace("FULLMSG");
-					var data = Buffer.from( cache ) ;
-					cache = Buffer.alloc( MSG_SIZE );
-					cachePosition = 0;
-					callback( data );
-				} else {
-					trace("INVALID MESSAGE");
-					cache = Buffer.alloc( MSG_SIZE );
-					cachePosition = 0;
-				}
-				*/
 			default:
 				trace("ERRROR ");
 				cache = Buffer.alloc( MSG_SIZE );
 				cachePosition = 0;
 			}
 		});
-		//var b = Buffer.alloc(1);
-		//b.writeUInt8( 17, 0 );
-		//proc.stdin.end( b );
 	}
 
 	/*

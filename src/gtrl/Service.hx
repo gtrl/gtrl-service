@@ -2,98 +2,68 @@ package gtrl;
 
 import js.npm.Sqlite3;
 import js.npm.sqlite3.*;
-//import js.npm.serialport.SerialPort;
 import js.node.http.IncomingMessage;
 import js.node.http.ServerResponse;
 import om.System;
 import om.Term;
 
+private typedef Config = {
+	var db : String;
+	var host : String;
+	var port : Int;
+}
+
+private typedef Setup = Array<{
+	name: String,
+	size: Dynamic,
+	sensors: Array<Dynamic>
+}>;
+
 class Service {
 
 	public static var isSystemService(default,null) = false;
 
-	static var config = {
+	static var config : Config = {
+		db: 'log.db',
 		host: 'auto',
 		port: 9000,
-		db: 'log.db',
-		rooms: [
-			/*
-			{
-				name: "tent",
-				size: { w: 120, h: 200, d: 120 },
-				sensors: [
-					{
-						name: "top",
-						type: DHT22,
-						pin: 17,
-						pause: 10000,
-						position: "tl",
-					}
-				]
-			}
-			*/
-			{
-				name: "lab",
-				size: { w: 500, h: 400, d: 300 },
-				sensors: [
-					{
-						name: "top",
-						type: "dht",
-						//position: "t",
-						interval: 3000,
-						driver: {
-							type: "dummy"
-						}
-					},
-				/*
-					{
-						name: "top",
-						type: "dht",
-						//position: "t",
-						interval: 3000,
-						driver: {
-							type: "process",
-							options: {
-								cmd: "bin/read_dht.py",
-								args: ['17']
-							}
-						}
-					},
-					*/
-					/*
-					{
-						name: "top",
-						type: "dht",
-						//position: "t",
-						interval: 10000,
-						driver: {
-							type: "serial",
-							options: {
-								path: "/dev/ttyACM0",
-								baud: 115200,
-								pin: 1
-							}
-						}
-					},
-					{
-						name: "bot",
-						type: "dht",
-						//position: "b",
-						interval: 10000,
-						driver: {
-							type: "serial",
-							options: {
-								path: "/dev/ttyACM0",
-								baud: 115200,
-								pin: 2
-							}
-						}
-					}
-					*/
-				]
-			}
-		]
 	};
+
+	static var setup : Setup = [
+		{
+			name: "lab",
+			size: { w: 500, h: 400, d: 300 },
+			sensors: [
+				{
+					name: "top",
+					type: "dht",
+					interval: 3000,
+					driver: {
+						type: "process",
+						options: {
+							cmd: "bin/read_dht.py",
+							args: ['17']
+						}
+					}
+				},
+				/*
+				{
+					name: "bot",
+					type: "dht",
+					interval: 10000,
+					driver: {
+						type: "serial",
+						options: {
+							path: "/dev/ttyACM0",
+							baud: 115200,
+							pin: 2
+						}
+					}
+				}
+				*/
+			]
+		}
+	];
 
 	static var rooms : Array<Room>;
 	static var db : Database;
@@ -193,33 +163,9 @@ class Service {
 
 			exitIfError( e );
 
-			web = new Web( );
-			web.on( 'request', (req:IncomingMessage,res:ServerResponse) -> {
-				var url = Url.parse( req.url, true );
-				//trace( url );
-				if( req.method == 'POST' ) {
-					var str = '';
-					req.on( 'data', function(c) str += c );
-					req.on( 'end', function() {
-						var data = Json.parse( str );
-						var time = Date.fromTime( data.time );
-						trace(time);
-						db.all( "SELECT * FROM dht", (e,rows:Array<Dynamic>) -> {
-							if( e != null ) trace( e );
-							res.writeHead( 200, {
-								'Access-Control-Allow-Origin': '*',
-								'Content-Type': 'application/json'
-							} );
-							res.end( Json.stringify( rows ) );
-						});
-					});
-				}
-
-			} );
-			web.listen( config.port, config.host );
-
 			rooms = [];
-			for( r in config.rooms ) {
+
+			for( r in setup ) {
 				var sensors = new Array<Sensor<Any>>();
 				for( s in r.sensors ) {
 					var driver : gtrl.sensor.Driver = null;
@@ -261,6 +207,30 @@ class Service {
 			}
 			initRoom(0);
 
+			web = new Web( );
+			web.on( 'request', (req:IncomingMessage,res:ServerResponse) -> {
+				var url = Url.parse( req.url, true );
+				//trace( url );
+				if( req.method == 'POST' ) {
+					var str = '';
+					req.on( 'data', function(c) str += c );
+					req.on( 'end', function() {
+						var data = Json.parse( str );
+						var time = Date.fromTime( data.time );
+						trace(time);
+						db.all( "SELECT * FROM dht", (e,rows:Array<Dynamic>) -> {
+							if( e != null ) trace( e );
+							res.writeHead( 200, {
+								'Access-Control-Allow-Origin': '*',
+								'Content-Type': 'application/json'
+							} );
+							res.end( Json.stringify( rows ) );
+						});
+					});
+				}
+
+			} );
+			web.listen( config.port, config.host );
 		});
 	}
 }
