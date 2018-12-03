@@ -1,17 +1,19 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
-# import argparse
-import json
 import sys
+import struct
 import Adafruit_DHT
 
-# print(sys.argv[1:])
 args = sys.argv[1:]
-# sensor_type = args[0]
-sensor_pin = args[0]
-
+pin = args[0]
 
 sensor = Adafruit_DHT.DHT22
-humidity, temperature = Adafruit_DHT.read_retry(sensor, sensor_pin)
+humidity, temperature = Adafruit_DHT.read(sensor, pin)
+# humidity, temperature = Adafruit_DHT.read_retry(sensor, pin)
 
-print(json.dumps([temperature, humidity]))
+if humidity is not None and temperature is not None:
+    sys.stdout.buffer.write(bytearray(struct.pack("f", temperature)))
+    sys.stdout.buffer.write(bytearray(struct.pack("f", humidity)))
+    exit(0)
+else:
+    exit(1)
