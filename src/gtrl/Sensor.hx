@@ -2,6 +2,8 @@ package gtrl;
 
 import gtrl.sensor.Driver;
 
+@:keep
+@:keepSub
 class Sensor<T> {
 
 	public dynamic function onData( data : T ) {}

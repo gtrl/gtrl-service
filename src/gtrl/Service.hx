@@ -1,7 +1,5 @@
 package gtrl;
 
-import js.npm.Sqlite3;
-import js.npm.sqlite3.*;
 import js.node.http.IncomingMessage;
 import js.node.http.ServerResponse;
 import om.System;
@@ -9,8 +7,10 @@ import om.Term;
 
 private typedef Config = {
 	var db : String;
-	var host : String;
-	var port : Int;
+	var net : {
+		var host : String;
+		var port : Int;
+	};
 }
 
 private typedef Setup = Array<{
@@ -21,12 +21,12 @@ private typedef Setup = Array<{
 
 class Service {
 
-	public static var isSystemService(default,null) = false;
-
 	static var config : Config = {
 		db: 'log.db',
-		host: 'auto',
-		port: 9000,
+		net: {
+			host: 'auto',
+			port: 9000
+		}
 	};
 
 	static var setup : Setup = [
@@ -37,12 +37,22 @@ class Service {
 				{
 					name: "top",
 					type: "dht",
-					interval: 3000,
+					interval: 2000,
 					driver: {
-						type: "process",
+						type: "adafruit_dht",
 						options: {
-							cmd: "bin/read_dht.py",
-							args: ['17']
+							pin: 17
+						}
+					}
+				},
+				{
+					name: "bot",
+					type: "dht",
+					interval: 2000,
+					driver: {
+						type: "adafruit_dht",
+						options: {
+							pin: 24
 						}
 					}
 				},
@@ -65,50 +75,37 @@ class Service {
 		}
 	];
 
-	static var rooms : Array<Room>;
-	static var db : Database;
-	static var web : Web;
+	public static var isSystemService(default,null) = false;
+	public static var rooms(default,null) = new Array<Room>();
+
+	static var db : Db;
+	static var net : Net;
 
 	static function stop() {
 		//for( r in rooms ) r.stop();
-		if( db != null ) {
-			db.close();
-		}
-		if( web != null ) {
-			web.close();
-		}
+		if( db != null ) db.close( function(?e){
+			if( e != null ) trace(e);
+		});
+		if( net != null ) net.close();
 	}
 
 	static function handleSensorData<T>( room : Room, sensor : Sensor<T>, data : T ) {
 
 		var now = Date.now();
-		var time = now.getTime();
 
 		if( !isSystemService ) print( DateTools.format( now, "%H:%M:%S" )+' ' );
 		print( '${room.name}:${sensor.name} ' );
 		println( Reflect.fields( data ).map( f -> return f+':'+Reflect.field( data, f ) ) );
 
 		if( db != null ) {
-			switch sensor.type {
-			case 'dht':
-				//var d : gtrl.sensor.DHTSensor.Data = cast data;
-				var names : Array<String> = ["time","room","sensor"];
-				var values : Array<Dynamic> = [time,room.name,sensor.name];
-				for( f in Reflect.fields( data ) ) {
-					var v = Reflect.field( data, f );
-					names.push( f );
-					values.push( v );
-				}
-				var sql = "INSERT INTO "+sensor.type+" VALUES ("+names.map(s->return "$"+s).join(',')+")";
-				db.run( sql, values, function(e){
-					if( e != null ) trace( e );
-				} );
-			}
+			db.insert( room.name, sensor.type, sensor.name, data, now, function(?e){
+				if( e != null ) trace(e);
+			} );
 		}
 
-		if( web != null ) {
-			web.broadcast({
-				time: time,
+		if( net != null ) {
+			net.broadcast({
+				time: now,
 				room: room.name,
 				sensor: { name: sensor.name, type: sensor.type },
 				data: data
@@ -117,30 +114,40 @@ class Service {
 	}
 
 	static function exit( ?msg : Dynamic, code = 0 ) {
-		if( msg != null ) Sys.println( msg );
+		if( msg != null ) println( msg );
 		Sys.exit( code );
 	}
+
+	static inline function exitIf( condition : Bool, msg : Dynamic, code = 1 )
+		if( condition ) exit( msg, code );
 
 	static inline function exitIfError( ?e : Error, code = 1 )
 		if( e != null ) exit( e, code );
 
 	static function main() {
 
-		if( !System.is( 'linux' ) ) exit( 'not linux', 1 );
+		exitIf( !System.is( 'linux' ), 'linux only' );
 		#if gtrl_release
-		if( !System.isRaspberryPi() ) exit( 'not a rasperry pi device', 1 );
+		exitIf( !System.isRaspberryPi(), 'not a rasperry pi device' );
 		#end
+
+		var configFile : String;
 
 		var argsHandler : {getDoc:Void->String,parse:Array<Dynamic>->Void};
 		argsHandler = hxargs.Args.generate([
 			//@doc("Path to config") ["-config"] => (file:String) -> config.db = file,
-			@doc("Path to db") ["-db"] => (file:String) -> config.db = file,
-			@doc("Host name/address")["-host"] => (name:String) -> config.host = name,
-			@doc("Port number")["-port"] => (number:Int) -> config.port = number,
-			["--service"] => () -> isSystemService = true,
-			@doc("Print usage") ["--help","-h"] => () -> {
-				println( 'Usage : gtrl <cmd> [params]' );
-				exit( argsHandler.getDoc() );
+			//@doc("Path to db") ["-db"] => (file:String) -> config.db = file,
+			//@doc("Host name/address")["-host"] => (name:String) -> config.host = name,
+			//@doc("Port number")["-port"] => (number:Int) -> config.port = number,
+			@doc("Path to config file")["--config","-c"] => function( ?path : String ) {
+				if( path == null )
+					exit( Std.string( config ), 0 );
+				exitIf( !FileSystem.exists( path ), 'Config file [$path] not found' );
+				configFile = path;
+			},
+			["--service"] => function() isSystemService = true,
+			@doc("Print usage")["--help","-h"] => function() {
+				exit( 'Usage : gtrl <cmd> [params]\n'+argsHandler.getDoc(), 1 );
 			},
 			_ => arg -> exit( 'Unknown parameter: $arg', 1 )
 		]);
@@ -151,19 +158,20 @@ class Service {
 		default: argsHandler.parse( args );
 		}
 
-		switch config.host {
-		case null,'auto': config.host = om.Network.getLocalIP()[0];
+		if( configFile != null ) {
+			config = Json.parseFile( configFile );
+		}
+
+		switch config.net.host {
+		case null,'auto': config.net.host = om.Network.getLocalIP()[0];
 		default:
 		}
-		if( config.host == null )
+		if( config.net.host == null )
 			exit( 'failed to resolve ip address', 1 );
 
-		db = new Database( config.db );
-		db.run( "CREATE TABLE IF NOT EXISTS dht (time REAL,room TEXT,sensor TEXT,temperature REAL,humidity REAL)", function(e){
+		Db.open( config.db ).then( function(db){
 
-			exitIfError( e );
-
-			rooms = [];
+			Service.db = db;
 
 			for( r in setup ) {
 				var sensors = new Array<Sensor<Any>>();
@@ -171,16 +179,15 @@ class Service {
 					var driver : gtrl.sensor.Driver = null;
 					var d : Dynamic = s.driver;
 					switch d.type {
+					case 'adafruit_dht':
+						driver = new gtrl.sensor.driver.AdafruitDHTDriver( d.options.cmd, d.options.pin );
 					case 'dummy':
 						driver = new gtrl.sensor.driver.DummyDriver();
 					case 'process':
-						driver = new gtrl.sensor.driver.ProcessDriver( d.options.cmd, d.options.args );
+						driver = new gtrl.sensor.driver.ProcessDriver( null, d.options.cmd, d.options.args );
 					case 'serial':
 						driver = new gtrl.sensor.driver.SerialDriver( d.options.path, d.options.pin );
 					default:
-						trace('driver not found');
-					}
-					if( driver == null ) {
 						trace('driver not found');
 					}
 					switch s.type {
@@ -191,7 +198,6 @@ class Service {
 				}
 				rooms.push( new Room( r.name, r.size, sensors ) );
 			}
-
 			function initRoom( i : Int ) {
 				var room = rooms[i];
 				room.init().then( e -> {
@@ -207,30 +213,36 @@ class Service {
 			}
 			initRoom(0);
 
-			web = new Web( );
-			web.on( 'request', (req:IncomingMessage,res:ServerResponse) -> {
-				var url = Url.parse( req.url, true );
-				//trace( url );
-				if( req.method == 'POST' ) {
-					var str = '';
-					req.on( 'data', function(c) str += c );
-					req.on( 'end', function() {
-						var data = Json.parse( str );
-						var time = Date.fromTime( data.time );
-						trace(time);
-						db.all( "SELECT * FROM dht", (e,rows:Array<Dynamic>) -> {
-							if( e != null ) trace( e );
-							res.writeHead( 200, {
-								'Access-Control-Allow-Origin': '*',
-								'Content-Type': 'application/json'
-							} );
-							res.end( Json.stringify( rows ) );
-						});
-					});
-				}
+			if( config.net != null ) {
+				println( 'Starting web interface [${config.net.host}:${config.net.port}]' );
+				net = new Net( );
+				net.on( 'request', (req:IncomingMessage,res:ServerResponse) -> {
+					var url = Url.parse( req.url, true );
+					//trace( url );
+					if( req.method == 'POST' ) {
+						var str = '';
+						req.on( 'data', function(c) str += c );
+						req.on( 'end', function() {
+							var data = Json.parse( str );
+							var time = Date.fromTime( data.time );
+							trace(time);
 
-			} );
-			web.listen( config.port, config.host );
+							db.all( 'dht', function(e,rows:Array<Dynamic>){
+								if( e != null ) trace( e );
+								res.writeHead( 200, {
+									'Access-Control-Allow-Origin': '*',
+									'Content-Type': 'application/json'
+								} );
+								res.end( Json.stringify( rows ) );
+							});
+						});
+					}
+				} );
+				net.listen( config.net.port, config.net.host );
+			}
+
+		}).catchError( e -> {
+			exit( e, 1 );
 		});
 	}
 }

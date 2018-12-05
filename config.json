@@ -1,0 +1,7 @@
+{
+	"db": "log.db",
+	"net": {
+		"host": "auto",
+		"port": 9000
+	}
+}

@@ -3,7 +3,7 @@ package gtrl;
 import js.npm.ws.Server as WebSocketServer;
 import js.npm.ws.WebSocket;
 
-class Web extends js.node.http.Server {
+class Net extends js.node.http.Server {
 
 	var ws : WebSocketServer;
 
