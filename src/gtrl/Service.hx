@@ -1,7 +1,7 @@
 package gtrl;
 
-import js.node.http.IncomingMessage;
-import js.node.http.ServerResponse;
+//import js.node.http.IncomingMessage;
+//import js.node.http.ServerResponse;
 import om.System;
 import om.Term;
 
@@ -37,7 +37,7 @@ class Service {
 				{
 					name: "top",
 					type: "dht",
-					interval: 2000,
+					interval: 60000,
 					driver: {
 						type: "adafruit_dht",
 						options: {
@@ -48,7 +48,7 @@ class Service {
 				{
 					name: "bot",
 					type: "dht",
-					interval: 2000,
+					interval: 60000,
 					driver: {
 						type: "adafruit_dht",
 						options: {
@@ -77,8 +77,8 @@ class Service {
 
 	public static var isSystemService(default,null) = false;
 	public static var rooms(default,null) = new Array<Room>();
+	public static var db(default,null) : Db;
 
-	static var db : Db;
 	static var net : Net;
 
 	static function stop() {
@@ -86,7 +86,7 @@ class Service {
 		if( db != null ) db.close( function(?e){
 			if( e != null ) trace(e);
 		});
-		if( net != null ) net.close();
+		if( net != null ) net.stop();
 	}
 
 	static function handleSensorData<T>( room : Room, sensor : Sensor<T>, data : T ) {
@@ -215,30 +215,8 @@ class Service {
 
 			if( config.net != null ) {
 				println( 'Starting web interface [${config.net.host}:${config.net.port}]' );
-				net = new Net( );
-				net.on( 'request', (req:IncomingMessage,res:ServerResponse) -> {
-					var url = Url.parse( req.url, true );
-					//trace( url );
-					if( req.method == 'POST' ) {
-						var str = '';
-						req.on( 'data', function(c) str += c );
-						req.on( 'end', function() {
-							var data = Json.parse( str );
-							var time = Date.fromTime( data.time );
-							trace(time);
-
-							db.all( 'dht', function(e,rows:Array<Dynamic>){
-								if( e != null ) trace( e );
-								res.writeHead( 200, {
-									'Access-Control-Allow-Origin': '*',
-									'Content-Type': 'application/json'
-								} );
-								res.end( Json.stringify( rows ) );
-							});
-						});
-					}
-				} );
-				net.listen( config.net.port, config.net.host );
+				net = new Net( config.net.host, config.net.port );
+				net.start();
 			}
 
 		}).catchError( e -> {
