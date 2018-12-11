@@ -12,8 +12,10 @@ class Db {
 		//TODO
 	}
 
-	public function all( table : String, callback : Error->Array<Dynamic>->Void ) {
-		db.all( "SELECT * FROM "+table, callback );
+	public function all( table : String, ?startTime : Float, callback : Error->Array<Dynamic>->Void ) {
+		var sql = "SELECT * FROM "+table;
+		if( startTime != null ) sql += " WHERE time > "+startTime;
+		db.all( sql, callback );
 	}
 
 	public function insert<T>( room : String, sensorType : String, sensorName : String, data : T, ?time : Date, ?callback : ?Error->Void ) {
