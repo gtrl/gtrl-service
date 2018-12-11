@@ -18,23 +18,25 @@ class Net extends js.node.http.Server {
 		this.port = port;
 	}
 
-	public function start() {
+	public function start( websocket = true ) {
 
 		on( 'request', handleRequest );
 
-		ws = new WebSocketServer( { server: this, clientTracking: true } );
-		ws.on( 'connection', function(e) {
-			println( 'Client connected' );
-		});
-		ws.on( 'close', function(e) {
-			println( 'Client disconnected' );
-		});
-		ws.on( 'message', function(e) {
-			trace(e);
-		});
-		ws.on( 'error', function(e) {
-			trace(e);
-		});
+		if( websocket ) {
+			ws = new WebSocketServer( { server: this, clientTracking: true } );
+			ws.on( 'connection', function(e) {
+				println( 'Client connected' );
+			});
+			ws.on( 'close', function(e) {
+				println( 'Client disconnected' );
+			});
+			ws.on( 'message', function(e) {
+				trace(e);
+			});
+			ws.on( 'error', function(e) {
+				trace(e);
+			});
+		}
 
 		listen( port, host );
 	}
@@ -56,22 +58,44 @@ class Net extends js.node.http.Server {
 	function handleRequest( req : IncomingMessage, res : ServerResponse ) {
 		var url = Url.parse( req.url, true );
 		//trace( url );
-		if( req.method == 'POST' ) {
-			var str = '';
-			req.on( 'data', function(c) str += c );
-			req.on( 'end', function() {
-				var data = Json.parse( str );
-				var time = Date.fromTime( data.time );
-				//trace(time);
-				Service.db.all( 'dht', function(e,rows:Array<Dynamic>){
-					if( e != null ) trace( e );
-					res.writeHead( 200, {
-						'Access-Control-Allow-Origin': '*',
-						'Content-Type': 'application/json'
-					} );
-					res.end( Json.stringify( rows ) );
+		var path = url.path.substr(1);
+		switch path {
+		case '': //
+		case 'data':
+			switch req.method {
+			case 'POST':
+				var str = '';
+				req.on( 'data', function(c) str += c );
+				req.on( 'end', function() {
+					var data = Json.parse( str );
+					var time = Date.fromTime( data.time );
+					Service.db.all( 'dht', time.getTime(), function(e,rows:Array<Dynamic>){
+						if( e != null ) {
+							trace( e );
+							//TODO
+						} else {
+							res.writeHead( 200, {
+								'Access-Control-Allow-Origin': '*',
+								'Content-Type': 'application/json'
+							} );
+							res.end( Json.stringify( rows ) );
+						}
+					});
 				});
-			});
+			default:
+				Service.db.all( 'dht', function(e,rows:Array<Dynamic>){
+					if( e != null ) {
+						trace( e );
+						//TODO
+					} else {
+						res.writeHead( 200, {
+							'Access-Control-Allow-Origin': '*',
+							'Content-Type': 'application/json'
+						} );
+						res.end( Json.stringify( rows ) );
+					}
+				});
+			}
 		}
 	}
 }
