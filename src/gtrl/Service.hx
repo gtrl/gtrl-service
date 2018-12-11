@@ -48,9 +48,9 @@ class Service {
 				},
 				/*
 				{
-					name: "lab",
+					name: "top",
 					type: "dht",
-					interval: 10000,
+					interval: 600000,
 					driver: {
 						type: "serial",
 						options: {
@@ -143,13 +143,14 @@ class Service {
 			_ => arg -> exit( 'Unknown parameter: $arg', 1 )
 		]);
 
+		config = Json.parseFile( configFile );
+
 		var args = Sys.args();
 		switch args[0] {
 		case 'config': exit( config );
 		default: argsHandler.parse( args );
 		}
 
-		config = Json.parseFile( configFile );
 
 		switch config.net.host {
 		case null,'auto': config.net.host = om.Network.getLocalIP()[0];
