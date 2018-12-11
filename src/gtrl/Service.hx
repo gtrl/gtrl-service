@@ -1,7 +1,5 @@
 package gtrl;
 
-//import js.node.http.IncomingMessage;
-//import js.node.http.ServerResponse;
 import om.System;
 import om.Term;
 
@@ -21,14 +19,6 @@ private typedef Setup = Array<{
 
 class Service {
 
-	static var config : Config = {
-		db: 'log.db',
-		net: {
-			host: 'auto',
-			port: 9000
-		}
-	};
-
 	static var setup : Setup = [
 		{
 			name: "lab",
@@ -37,7 +27,7 @@ class Service {
 				{
 					name: "top",
 					type: "dht",
-					interval: 60000,
+					interval: 600000,
 					driver: {
 						type: "adafruit_dht",
 						options: {
@@ -48,7 +38,7 @@ class Service {
 				{
 					name: "bot",
 					type: "dht",
-					interval: 60000,
+					interval: 600000,
 					driver: {
 						type: "adafruit_dht",
 						options: {
@@ -58,7 +48,7 @@ class Service {
 				},
 				/*
 				{
-					name: "bot",
+					name: "lab",
 					type: "dht",
 					interval: 10000,
 					driver: {
@@ -66,7 +56,7 @@ class Service {
 						options: {
 							path: "/dev/ttyACM0",
 							baud: 115200,
-							pin: 2
+							pin: 1 // not arduino pin, but array pos+1
 						}
 					}
 				}
@@ -76,6 +66,7 @@ class Service {
 	];
 
 	public static var isSystemService(default,null) = false;
+	public static var config(default,null) : Config;
 	public static var rooms(default,null) = new Array<Room>();
 	public static var db(default,null) : Db;
 
@@ -105,7 +96,7 @@ class Service {
 
 		if( net != null ) {
 			net.broadcast({
-				time: now,
+				time: now.getTime(),
 				room: room.name,
 				sensor: { name: sensor.name, type: sensor.type },
 				data: data
@@ -131,7 +122,7 @@ class Service {
 		exitIf( !System.isRaspberryPi(), 'not a rasperry pi device' );
 		#end
 
-		var configFile : String;
+		var configFile = 'config.json';
 
 		var argsHandler : {getDoc:Void->String,parse:Array<Dynamic>->Void};
 		argsHandler = hxargs.Args.generate([
@@ -158,9 +149,7 @@ class Service {
 		default: argsHandler.parse( args );
 		}
 
-		if( configFile != null ) {
-			config = Json.parseFile( configFile );
-		}
+		config = Json.parseFile( configFile );
 
 		switch config.net.host {
 		case null,'auto': config.net.host = om.Network.getLocalIP()[0];
