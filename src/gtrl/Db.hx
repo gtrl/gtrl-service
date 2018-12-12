@@ -1,5 +1,12 @@
 package gtrl;
 
+private typedef Filter = {
+	?from : Float,
+	?until : Float,
+	?room : String,
+	?sensor : String,
+}
+
 class Db {
 
 	var db : js.npm.sqlite3.Database;
@@ -8,28 +15,29 @@ class Db {
 		this.db = db;
 	}
 
-	public function get() {
-		//TODO
-	}
-
-	public function all( table : String, ?startTime : Float, callback : Error->Array<Dynamic>->Void ) {
-		var sql = "SELECT * FROM "+table;
-		if( startTime != null ) sql += " WHERE time > "+startTime;
+	public function get( table = "dht", ?filter : Filter, callback : Error->Array<Dynamic>->Void ) {
+		var sql = 'SELECT * FROM $table';
+		if( filter != null ) {
+			var conds = new Array<String>();
+			if( filter.from != null ) conds.push( 'time>="${filter.from}"' );
+			if( filter.until != null ) conds.push( 'time<="${filter.until}"' );
+			if( filter.room != null ) conds.push( 'room="${filter.room}"' );
+			if( filter.sensor != null ) conds.push( 'sensor="${filter.sensor}"' );
+			if( conds.length > 0 ) sql += ' WHERE '+conds.join( ' AND ' );
+		}
 		db.all( sql, callback );
 	}
 
-	public function insert<T>( room : String, sensorType : String, sensorName : String, data : T, ?time : Date, ?callback : ?Error->Void ) {
+	public function insert<T>( table = "dht", room : String, sensor : String, data : T, ?time : Date, ?callback : ?Error->Void ) {
 		if( time == null ) time = Date.now();
 		var names : Array<String> = ["time","room","sensor"];
-		var values : Array<Dynamic> = [time.getTime(),room,sensorName];
+		var values : Array<Dynamic> = [time.getTime(),room,sensor];
 		for( f in Reflect.fields( data ) ) {
 			names.push( f );
 			values.push( Reflect.field( data, f ) );
 		}
-		var sql = "INSERT INTO "+sensorType+" VALUES ("+names.map(s->return "$"+s).join(',')+")";
-		db.run( sql, values, function(e){
-			if( callback != null ) callback( e );
-		} );
+		var sql = 'INSERT INTO $table VALUES ('+names.map(s->return "$"+s).join(',')+')';
+		db.run( sql, values, callback );
 	}
 
 	public function close( ?callback : ?Error->Void ) {
