@@ -4,69 +4,30 @@ import om.System;
 import om.Term;
 
 private typedef Config = {
-	var db : String;
-	var net : {
-		var host : String;
-		var port : Int;
-	};
+	db : String,
+	net : {
+		host : String,
+		port : Int
+	}
 }
 
 private typedef Setup = Array<{
-	name: String,
-	size: Dynamic,
-	sensors: Array<Dynamic>
-}>;
+	name : String,
+	size : Dynamic,
+	sensors : Array<{
+		name : String,
+		type : String,
+		interval : Int,
+		driver : {
+			type : String,
+			options : Dynamic
+		}
+	}>
+}>
 
 class Service {
 
-	static var setup : Setup = [
-		{
-			name: "lab",
-			size: { w: 500, h: 400, d: 300 },
-			sensors: [
-				{
-					name: "top",
-					type: "dht",
-					interval: 600000,
-					driver: {
-						type: "adafruit_dht",
-						options: {
-							pin: 17
-						}
-					}
-				},
-				{
-					name: "bot",
-					type: "dht",
-					interval: 600000,
-					driver: {
-						type: "adafruit_dht",
-						options: {
-							pin: 24
-						}
-					}
-				},
-				/*
-				{
-					name: "top",
-					type: "dht",
-					interval: 600000,
-					driver: {
-						type: "serial",
-						options: {
-							path: "/dev/ttyACM0",
-							baud: 115200,
-							pin: 1 // not arduino pin, but array pos+1
-						}
-					}
-				}
-				*/
-			]
-		}
-	];
-
 	public static var isSystemService(default,null) = false;
-	public static var config(default,null) : Config;
 	public static var rooms(default,null) = new Array<Room>();
 	public static var db(default,null) : Db;
 
@@ -89,7 +50,7 @@ class Service {
 		println( Reflect.fields( data ).map( f -> return f+':'+Reflect.field( data, f ) ) );
 
 		if( db != null ) {
-			db.insert( room.name, sensor.type, sensor.name, data, now, function(?e){
+			db.insert( "dht", room.name, sensor.name, data, now, function(?e){
 				if( e != null ) trace(e);
 			} );
 		}
@@ -123,6 +84,7 @@ class Service {
 		#end
 
 		var configFile = 'config.json';
+		var setupFile = 'setup.json';
 
 		var argsHandler : {getDoc:Void->String,parse:Array<Dynamic>->Void};
 		argsHandler = hxargs.Args.generate([
@@ -130,9 +92,11 @@ class Service {
 			//@doc("Path to db") ["-db"] => (file:String) -> config.db = file,
 			//@doc("Host name/address")["-host"] => (name:String) -> config.host = name,
 			//@doc("Port number")["-port"] => (number:Int) -> config.port = number,
+			@doc("Path to setup file")["--setup","-s"] => function( path : String ) {
+				exitIf( !FileSystem.exists( path ), 'Setup file [$path] not found' );
+				setupFile = path;
+			},
 			@doc("Path to config file")["--config","-c"] => function( ?path : String ) {
-				if( path == null )
-					exit( Std.string( config ), 0 );
 				exitIf( !FileSystem.exists( path ), 'Config file [$path] not found' );
 				configFile = path;
 			},
@@ -143,21 +107,16 @@ class Service {
 			_ => arg -> exit( 'Unknown parameter: $arg', 1 )
 		]);
 
-		config = Json.parseFile( configFile );
+		argsHandler.parse( Sys.args() );
 
-		var args = Sys.args();
-		switch args[0] {
-		case 'config': exit( config );
-		default: argsHandler.parse( args );
-		}
-
+		var config : Config = Json.parseFile( configFile );
+		var setup : Setup = Json.parseFile( setupFile);
 
 		switch config.net.host {
 		case null,'auto': config.net.host = om.Network.getLocalIP()[0];
 		default:
 		}
-		if( config.net.host == null )
-			exit( 'failed to resolve ip address', 1 );
+		exitIf( config.net.host == null, 'failed to resolve ip address', 1 );
 
 		Db.open( config.db ).then( function(db){
 
