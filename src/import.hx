@@ -15,7 +15,6 @@ import om.Json;
 import om.Nil;
 import om.Term;
 import om.Time;
-import om.Time.timestamp;
 import om.error.*;
 
 import Sys.print;

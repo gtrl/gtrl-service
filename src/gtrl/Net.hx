@@ -25,10 +25,10 @@ class Net extends js.node.http.Server {
 		if( websocket ) {
 			ws = new WebSocketServer( { server: this, clientTracking: true } );
 			ws.on( 'connection', function(e) {
-				println( 'Client connected' );
+				println( 'client connected' );
 			});
 			ws.on( 'close', function(e) {
-				println( 'Client disconnected' );
+				println( 'client disconnected' );
 			});
 			ws.on( 'message', function(e) {
 				trace(e);
@@ -69,7 +69,7 @@ class Net extends js.node.http.Server {
 				req.on( 'end', function() {
 					var data = Json.parse( str );
 					var time = Date.fromTime( data.time );
-					Service.db.all( 'dht', time.getTime(), function(e,rows:Array<Dynamic>){
+					Service.db.get( 'dht', { from: time.getTime() }, function(e,rows:Array<Dynamic>){
 						if( e != null ) {
 							trace( e );
 							//TODO
@@ -83,7 +83,7 @@ class Net extends js.node.http.Server {
 					});
 				});
 			default:
-				Service.db.all( 'dht', function(e,rows:Array<Dynamic>){
+				Service.db.get( 'dht', function(e,rows:Array<Dynamic>){
 					if( e != null ) {
 						trace( e );
 						//TODO
