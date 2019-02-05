@@ -1,5 +1,7 @@
 package gtrl;
 
+import gtrl.db.Entry;
+
 private typedef Filter = {
 	?from : Float,
 	?until : Float,
@@ -15,7 +17,7 @@ class Db {
 		this.db = db;
 	}
 
-	public function get( table = "dht", ?filter : Filter, callback : Error->Array<Dynamic>->Void ) {
+	public function get( table = "dht", ?filter : Filter, callback : Error->Array<Entry>->Void ) {
 		var sql = 'SELECT * FROM $table';
 		if( filter != null ) {
 			var conds = new Array<String>();

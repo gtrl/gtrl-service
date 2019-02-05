@@ -59,8 +59,14 @@ class Net extends js.node.http.Server {
 		var url = Url.parse( req.url, true );
 		//trace( url );
 		var path = url.path.substr(1);
+		res.writeHead( 200, {
+			'Access-Control-Allow-Origin': '*',
+			'Content-Type': 'application/json'
+		} );
 		switch path {
 		case '': //
+		case 'setup':
+			res.end( Json.stringify( Service.setup ) );
 		case 'data':
 			switch req.method {
 			case 'POST':
@@ -74,10 +80,6 @@ class Net extends js.node.http.Server {
 							trace( e );
 							//TODO
 						} else {
-							res.writeHead( 200, {
-								'Access-Control-Allow-Origin': '*',
-								'Content-Type': 'application/json'
-							} );
 							res.end( Json.stringify( rows ) );
 						}
 					});
@@ -88,10 +90,6 @@ class Net extends js.node.http.Server {
 						trace( e );
 						//TODO
 					} else {
-						res.writeHead( 200, {
-							'Access-Control-Allow-Origin': '*',
-							'Content-Type': 'application/json'
-						} );
 						res.end( Json.stringify( rows ) );
 					}
 				});

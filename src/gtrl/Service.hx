@@ -1,7 +1,6 @@
 package gtrl;
 
 import om.System;
-import om.Term;
 
 private typedef Config = {
 	db : String,
@@ -11,28 +10,15 @@ private typedef Config = {
 	}
 }
 
-private typedef Setup = Array<{
-	name : String,
-	size : Dynamic,
-	sensors : Array<{
-		name : String,
-		type : String,
-		interval : Int,
-		driver : {
-			type : String,
-			options : Dynamic
-		}
-	}>
-}>
-
 class Service {
 
 	public static var isSystemService(default,null) = false;
+
+	public static var config(default,null) : Config;
+	public static var setup(default,null) : Setup;
+
 	public static var rooms(default,null) = new Array<Room>();
 	public static var db(default,null) : Db;
-
-	static var config : Config;
-	static var setup : Setup;
 
 	static var net : Net;
 
