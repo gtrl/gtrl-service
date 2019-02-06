@@ -6,7 +6,7 @@ typedef Setup = Array<{
 	sensors : Array<{
 		name : String,
 		type : String,
-		interval : Int,
+		interval : Int, // sec
 		driver : {
 			type : String,
 			options : Dynamic

@@ -31,7 +31,7 @@ class Sensor<T> {
 	}
 
 	public function start() {
-		timer = new Timer( interval );
+		timer = new Timer( interval * 1000 );
 		timer.run = function() {
 			driver.read( handleData );
 		}
