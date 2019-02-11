@@ -1,5 +1,11 @@
 package gtrl;
 
+typedef RoomSize = {
+	w : Int,
+	h : Int,
+	d : Int,
+}
+
 typedef SensorSetup = {
 	name : String,
 	type : String,
@@ -12,7 +18,7 @@ typedef SensorSetup = {
 
 typedef RoomSetup = {
 	name : String,
-	size : Dynamic,
+	size : RoomSize,
 	sensors : Array<SensorSetup>
 }
 
