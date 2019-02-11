@@ -1,15 +1,19 @@
 package gtrl;
 
-typedef Setup = Array<{
+typedef SensorSetup = {
+	name : String,
+	type : String,
+	interval : Int, // sec
+	driver : {
+		type : String,
+		options : Dynamic
+	}
+}
+
+typedef RoomSetup = {
 	name : String,
 	size : Dynamic,
-	sensors : Array<{
-		name : String,
-		type : String,
-		interval : Int, // sec
-		driver : {
-			type : String,
-			options : Dynamic
-		}
-	}>
-}>
+	sensors : Array<SensorSetup>
+}
+
+typedef Setup = Array<RoomSetup>;
