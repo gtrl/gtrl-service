@@ -27,13 +27,22 @@ class Sensor<T> {
 	}
 
 	public function disconnect() : Promise<Nil> {
+		stop();
 		return driver.disconnect();
 	}
 
 	public function start() {
+		stop();
 		timer = new Timer( interval * 1000 );
 		timer.run = function() {
 			driver.read( handleData );
+		}
+	}
+
+	public function stop() {
+		if( timer != null ) {
+			timer.stop();
+			timer = null;
 		}
 	}
 
