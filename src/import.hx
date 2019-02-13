@@ -10,6 +10,7 @@ import js.Node.console;
 import js.Node.process;
 import js.node.Buffer;
 import js.node.Fs;
+import js.node.Readline;
 import js.node.Url;
 import Sys.print;
 import Sys.println;

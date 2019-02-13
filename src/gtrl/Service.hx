@@ -21,85 +21,15 @@ class Service {
 	public static var db(default,null) : Db;
 
 	static var net : Net;
+	static var readline : js.node.readline.Interface;
 
-	static function stop() {
-		//for( r in rooms ) r.stop();
-		if( db != null ) db.close( function(?e){
-			if( e != null ) trace(e);
-		});
-		if( net != null ) net.stop();
-	}
+	static function start( configFile : String, setupFile : String ) {
 
-	static function handleSensorData<T>( room : Room, sensor : Sensor<T>, data : T ) {
+		println( 'Starting [config=$configFile,setup=$setupFile]' );
 
-		var now = Date.now();
+		stop();
 
-		if( !isSystemService ) print( DateTools.format( now, "%H:%M:%S" )+' ' );
-		print( '${room.name}:${sensor.name} ' );
-		println( Reflect.fields( data ).map( f -> return f+':'+Reflect.field( data, f ) ) );
-
-		if( db != null ) {
-			db.insert( "dht", room.name, sensor.name, data, now, function(?e){
-				if( e != null ) trace(e);
-			} );
-		}
-
-		if( net != null ) {
-			net.broadcast({
-				time: now.getTime(),
-				room: room.name,
-				sensor: { name: sensor.name, type: sensor.type },
-				data: data
-			});
-		}
-	}
-
-	static function exit( ?msg : Dynamic, code = 0 ) {
-		if( msg != null ) println( msg );
-		Sys.exit( code );
-	}
-
-	static inline function exitIf( condition : Bool, msg : Dynamic, code = 1 )
-		if( condition ) exit( msg, code );
-
-	static inline function exitIfError( ?e : Error, code = 1 )
-		if( e != null ) exit( e, code );
-
-	static function main() {
-
-		exitIf( !System.is( 'linux' ), 'linux only' );
-		#if gtrl_release
-		exitIf( !System.isRaspberryPi(), 'not a rasperry pi device' );
-		#end
-
-		var configFile = 'config.json';
-		var setupFile = 'setup.json';
-
-		var argsHandler : {getDoc:Void->String,parse:Array<Dynamic>->Void};
-		argsHandler = hxargs.Args.generate([
-			//@doc("Path to db") ["-db"] => (file:String) -> config.db = file,
-			//@doc("Host name/address")["-host"] => (name:String) -> config.host = name,
-			//@doc("Port number")["-port"] => (number:Int) -> config.port = number,
-			@doc("Path to config file")["--config","-c"] => function( ?path : String ) {
-				exitIf( !FileSystem.exists( path ), 'Config file [$path] not found' );
-				configFile = path;
-			},
-			@doc("Path to setup file")["--setup","-s"] => function( path : String ) {
-				exitIf( !FileSystem.exists( path ), 'Setup file [$path] not found' );
-				setupFile = path;
-			},
-			["--service"] => function() isSystemService = true,
-			@doc("Print usage")["--help","-h"] => function() {
-				exit( 'Usage : gtrl <cmd> [params]\n'+argsHandler.getDoc(), 1 );
-			},
-			_ => arg -> exit( 'Unknown parameter: $arg', 1 )
-		]);
-
-		argsHandler.parse( Sys.args() );
-		
-		println( 'config=$configFile, setup=$setupFile' );
-
-		Promise.all([ Json.readFile( configFile ), Json.readFile( setupFile ) ]).then( function(r){
+		return Promise.all([ Json.readFile( configFile ), Json.readFile( setupFile ) ]).then( function(r){
 			
 			config = r[0];
 			setup = r[1];
@@ -110,7 +40,7 @@ class Service {
 			}
 			exitIf( config.net.host == null, 'failed to resolve ip address', 1 );
 
-			Db.open( config.db ).then( function(db){
+			return Db.open( config.db ).then( function(db){
 
 				Service.db = db;
 
@@ -159,9 +89,92 @@ class Service {
 					net = new Net( config.net.host, config.net.port );
 					net.start();
 				}
-			}).catchError( e -> {
-				exit( e, 1 );
+			}).then( function(_){
+				//println('>>>');
+				//readline = Readline.createInterface({ input : process.stdin, output : process.stdout });
+				//readline.question( '>' );
 			});
+		});
+	}
+
+	static function stop() {
+		//for( r in rooms ) r.stop();
+		if( readline != null ) readline.close();
+		if( net != null ) net.stop();
+		if( db != null ) db.close( function(?e){
+			if( e != null ) trace(e);
+		});
+	}
+
+	static function exit( ?msg : Dynamic, code = 0 ) {
+		if( msg != null ) println( msg );
+		Sys.exit( code );
+	}
+
+	static inline function exitIf( condition : Bool, msg : Dynamic, code = 1 )
+		if( condition ) exit( msg, code );
+
+	static inline function exitIfError( ?e : Error, code = 1 )
+		if( e != null ) exit( e, code );
+
+	static function handleSensorData<T>( room : Room, sensor : Sensor<T>, data : T ) {
+
+		var now = Date.now();
+
+		if( !isSystemService ) print( DateTools.format( now, "%H:%M:%S" )+' ' );
+		print( '${room.name}:${sensor.name} ' );
+		println( Reflect.fields( data ).map( f -> return f+':'+Reflect.field( data, f ) ) );
+
+		if( db != null ) {
+			db.insert( "dht", room.name, sensor.name, data, now, function(?e){
+				if( e != null ) trace(e);
+			} );
+		}
+
+		if( net != null ) {
+			net.broadcast({
+				time: now.getTime(),
+				room: room.name,
+				sensor: { name: sensor.name, type: sensor.type },
+				data: data
+			});
+		}
+	}
+
+	static function main() {
+
+		exitIf( !System.is( 'linux' ), 'linux only' );
+		#if gtrl_release
+		exitIf( !System.isRaspberryPi(), 'not a rasperry pi device' );
+		#end
+
+		var configFile = 'config.json';
+		var setupFile = 'setup.json';
+
+		var argsHandler : {getDoc:Void->String,parse:Array<Dynamic>->Void};
+		argsHandler = hxargs.Args.generate([
+			//@doc("Path to db") ["-db"] => (file:String) -> config.db = file,
+			//@doc("Host name/address")["-host"] => (name:String) -> config.host = name,
+			//@doc("Port number")["-port"] => (number:Int) -> config.port = number,
+			@doc("Path to config file")["--config","-c"] => function( ?path : String ) {
+				exitIf( !FileSystem.exists( path ), 'Config file [$path] not found' );
+				configFile = path;
+			},
+			@doc("Path to setup file")["--setup","-s"] => function( path : String ) {
+				exitIf( !FileSystem.exists( path ), 'Setup file [$path] not found' );
+				setupFile = path;
+			},
+			["--service"] => function() isSystemService = true,
+			@doc("Print usage")["--help","-h"] => function() {
+				exit( 'Usage : gtrl <cmd> [params]\n'+argsHandler.getDoc(), 1 );
+			},
+			_ => arg -> exit( 'Unknown parameter: $arg', 1 )
+		]);
+
+		argsHandler.parse( Sys.args() );
+
+		start( configFile, setupFile ).then( function(_){
+			println( 'Ready' );
 		}).catchError( function(e){
 			exit( e, 1 );
 		});
