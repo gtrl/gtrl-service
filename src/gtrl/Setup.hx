@@ -10,6 +10,7 @@ typedef SensorSetup = {
 	name : String,
 	type : String,
 	interval : Int, // sec
+	enabled: Null<Bool>,
 	driver : {
 		type : String,
 		options : Dynamic
