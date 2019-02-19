@@ -1,4 +1,3 @@
-
 PROJECT = gtrl
 PREFIX ?= /usr
 INSTALL_DIR ?= $(PREFIX)
@@ -13,9 +12,9 @@ build: service.js
 
 install:
 	ln -snf $(shell pwd) $(INSTALL_DIR)/lib/$(PROJECT)
-	cp res/gtrl.sh $(INSTALL_DIR)/bin/$(PROJECT)
+	cp gtrl.sh $(INSTALL_DIR)/bin/$(PROJECT)
 	chmod +x $(INSTALL_DIR)/bin/$(PROJECT)
-	cp res/gtrl.service /etc/systemd/system/
+	cp gtrl.service /etc/systemd/system/
 
 uninstall:
 	rm -f $(INSTALL_DIR)/lib/$(PROJECT)
