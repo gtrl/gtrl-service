@@ -33,22 +33,22 @@ class DHTSensor extends Sensor<Data> {
 
 		if( minTemperature != null && t < minTemperature ) {
 			trace('invalid temperature value: '+t );
-			onError( invalid_value );
+			onError( value_invalid );
 			return;
 		}
 		if( maxTemperature != null && t > maxTemperature ) {
 			trace('invalid temperature value: '+h );
-			onError( invalid_value );
+			onError( value_invalid );
 			return;
 		}
 		if( minHumidity != null && h < minHumidity ) {
 			trace('invalid humidity value: '+h );
-			onError( invalid_value );
+			onError( value_invalid );
 			return;
 		}
 		if( maxHumidity != null && h > maxHumidity ) {
 			trace('invalid humidity value: '+h );
-			onError( invalid_value );
+			onError( value_invalid );
 			return;
 		}
 

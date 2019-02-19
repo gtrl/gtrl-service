@@ -3,7 +3,8 @@ package gtrl;
 import gtrl.sensor.Driver;
 
 enum abstract ErrorType(Int) to Int {
-	var invalid_value = 0;
+	var read_fail = 0;
+	var value_invalid = 1;
 }
 
 @:keep
