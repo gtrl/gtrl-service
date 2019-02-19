@@ -125,19 +125,13 @@ class Service {
 		if( e != null ) exit( e, code );
 
 	static function handleSensorData<T>( room : Room, sensor : Sensor<T>, data : T ) {
-
 		var now = Date.now();
-
-		if( !isSystemService ) print( DateTools.format( now, "%H:%M:%S" )+' ' );
-		print( '${room.name}:${sensor.name} ' );
-		println( Reflect.fields( data ).map( f -> return f+':'+Reflect.field( data, f ) ) );
-
+		log( '${room.name}:${sensor.name} '+Reflect.fields( data ).map( f -> return f+':'+Reflect.field( data, f ) ), now );
 		if( db != null ) {
 			db.insert( "dht", room.name, sensor.name, data, now, function(?e){
 				if( e != null ) trace(e);
 			} );
 		}
-
 		if( net != null ) {
 			net.broadcast({
 				time: now.getTime(),
@@ -149,11 +143,19 @@ class Service {
 	}
 
 	static function handleSensorError<T>( room : Room, sensor : Sensor<T>, type : Sensor.ErrorType ) {
+		var now = Date.now();
+		log( 'ERROR: ${room.name}:${sensor.name}:$type', now );
 		if( db != null ) {
 			db.insertError( room.name, sensor.name, type, Date.now(), function(?e){
 				if( e != null ) trace(e);
 			});
 		}
+	}
+
+	public static function log( msg : String, ?time : Date ) {
+		if( time == null ) time = Date.now();
+		if( !isSystemService ) print( DateTools.format( time, "%H:%M:%S" )+' ' );
+		println( msg );
 	}
 
 	static function main() {
