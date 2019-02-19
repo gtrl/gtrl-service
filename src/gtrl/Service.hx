@@ -47,8 +47,10 @@ class Service {
 				for( r in setup ) {
 					var sensors = new Array<Sensor<Any>>();
 					for( s in r.sensors ) {
-						if( s.enabled != null && !s.enabled )
+						if( s.enabled != null && !s.enabled ) {
+							println( s.name+' disabled' );
 							continue;
+						}
 						var driver : gtrl.sensor.Driver = null;
 						var d : Dynamic = s.driver;
 						switch d.type {
@@ -67,20 +69,22 @@ class Service {
 						case 'dht':
 							var sensor = new gtrl.sensor.DHTSensor( s.name, driver, s.interval );
 							sensors.push( cast sensor );
+						default:
+							trace('Unknown sensor type: '+s.type );
 						}
+						println( 'Sensor ['+s.name+'] ready' );
 					}
 					rooms.push( new Room( r.name, r.size, sensors ) );
 				}
 				function initRoom( i : Int ) {
 					var room = rooms[i];
 					room.init().then( e -> {
-						println( "ROOM["+room.name+"] READY");
+						println( "Room["+room.name+"] ready");
 						room.onData = (s,d) -> handleSensorData( room, s, d );
 						room.onError = (s,t) -> handleSensorError( room, s, t );
 						if( ++i < rooms.length ) {
 							initRoom( i );
 						} else {
-							trace("ALL ROOMS READY");
 							for( room in rooms ) room.start();
 						}
 					});
@@ -185,7 +189,7 @@ class Service {
 		argsHandler.parse( Sys.args() );
 
 		start( configFile, setupFile ).then( function(_){
-			println( 'Ready' );
+			//println( 'ready' );
 		}).catchError( function(e){
 			exit( e, 1 );
 		});
