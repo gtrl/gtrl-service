@@ -47,6 +47,8 @@ class Service {
 				for( r in setup ) {
 					var sensors = new Array<Sensor<Any>>();
 					for( s in r.sensors ) {
+						if( s.enabled != null && !s.enabled )
+							continue;
 						var driver : gtrl.sensor.Driver = null;
 						var d : Dynamic = s.driver;
 						switch d.type {
@@ -74,6 +76,7 @@ class Service {
 					room.init().then( e -> {
 						println( "ROOM["+room.name+"] READY");
 						room.onData = (s,d) -> handleSensorData( room, s, d );
+						room.onError = (s,t) -> handleSensorError( room, s, t );
 						if( ++i < rooms.length ) {
 							initRoom( i );
 						} else {
@@ -137,6 +140,14 @@ class Service {
 				room: room.name,
 				sensor: { name: sensor.name, type: sensor.type },
 				data: data
+			});
+		}
+	}
+
+	static function handleSensorError<T>( room : Room, sensor : Sensor<T>, type : Sensor.ErrorType ) {
+		if( db != null ) {
+			db.insertError( room.name, sensor.name, type, Date.now(), function(?e){
+				if( e != null ) trace(e);
 			});
 		}
 	}

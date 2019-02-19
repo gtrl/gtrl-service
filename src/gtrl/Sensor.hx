@@ -2,11 +2,16 @@ package gtrl;
 
 import gtrl.sensor.Driver;
 
+enum abstract ErrorType(Int) to Int {
+	var invalid_value = 0;
+}
+
 @:keep
 @:keepSub
 class Sensor<T> {
 
 	public dynamic function onData( data : T ) {}
+	public dynamic function onError( type : ErrorType ) {}
 
 	public var type(default,null) : String;
 	public var name(default,null) : String;

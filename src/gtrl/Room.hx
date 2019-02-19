@@ -9,7 +9,7 @@ typedef Size = {
 class Room {
 
 	public dynamic function onData<T>( s : Sensor<T>, d : T ) {}
-	//public dynamic function onError( e : Sensor.Error ) {}
+	public dynamic function onError<T>( s : Sensor<T>, e : Sensor.ErrorType ) {}
 
 	public var name(default,null) : String;
 	public var size(default,null) : Size;
@@ -30,6 +30,9 @@ class Room {
 				s.connect().then( (_) -> {
 					s.onData = function(data){
 						handleSensorData( s, data );
+					}
+					s.onError = function(type){
+						handleSensorError( s, type );
 					}
 					//s.onError = handleSensorData;
 					if( ++i < sensors.length ) {
@@ -62,7 +65,10 @@ class Room {
 	}
 
 	function handleSensorData<T>( sensor : Sensor<T>, data : T ) {
-		//trace(sensor.name+': '+data);
 		onData( sensor, data );
+	}
+
+	function handleSensorError<T>( sensor : Sensor<T>, type : Sensor.ErrorType ) {
+		onError( sensor, type );
 	}
 }

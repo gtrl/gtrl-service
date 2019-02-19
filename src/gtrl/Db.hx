@@ -42,6 +42,13 @@ class Db {
 		db.run( sql, values, callback );
 	}
 
+	public function insertError( room : String, sensor : String, type : Int, ?time : Date, ?callback : ?Error->Void ) {
+		if( time == null ) time = Date.now();
+		var names = ['time','room','sensor','type'];
+		var sql = 'INSERT INTO error VALUES ('+names.map(s->return "$"+s).join(',')+')';
+		db.run( sql, [time,room,sensor,type], callback );
+	}
+
 	public function close( ?callback : ?Error->Void ) {
 		db.close( function(e){
 			db = null;
@@ -49,15 +56,22 @@ class Db {
 		} );
 	}
 
-	public static function open( path : String ) : Promise<Db> {
+	function run( sql : String ) : Promise<Nil> {
 		return new Promise( function(resolve,reject){
-			var sqlite = new js.npm.sqlite3.Database( path );
-			///TODO
-			sqlite.run( "CREATE TABLE IF NOT EXISTS dht (time REAL,room TEXT,sensor TEXT,temperature REAL,humidity REAL)", function(e){
-				if( e != null ) reject( e ) else {
-					resolve( new Db( sqlite ) );
-				}
+			db.run( sql, function(e){
+				if( e != null ) reject( e ) else resolve( nil );
 			});
 		});
 	}
+
+	public static function open( path : String ) : Promise<Db> {
+		var db = new Db( new js.npm.sqlite3.Database( path ) );
+		return Promise.all([
+			db.run( "CREATE TABLE IF NOT EXISTS dht (time REAL,room TEXT,sensor TEXT,temperature REAL,humidity REAL)" ),
+			db.run( "CREATE TABLE IF NOT EXISTS error (time REAL,room TEXT,sensor TEXT,type INTEGER)" )
+		]).then( function(_){
+			return db;
+		});
+	}
+	
 }
