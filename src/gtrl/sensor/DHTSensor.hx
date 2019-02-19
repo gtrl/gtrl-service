@@ -11,7 +11,13 @@ class DHTSensor extends Sensor<Data> {
 
 	public static inline var TYPE = 'dht';
 
+	/** Float value precision **/
 	public var precision : Int;
+
+	public var minTemperature = 0;
+	public var maxTemperature = 70;
+	public var minHumidity = 0;
+	public var maxHumidity = 100;
 
 	public function new( name : String, driver : Driver, interval : Int, precision = 2 ) {
 		super( TYPE, name, driver, interval );
@@ -19,13 +25,34 @@ class DHTSensor extends Sensor<Data> {
 	}
 
 	override function handleData( buf : Buffer ) {
+
 		super.handleData( buf );
+
 		var t = buf.readFloatLE(0);
 		var h = buf.readFloatLE(4);
+
+		if( minTemperature != null && t < minTemperature ) {
+			trace('invalid temperature value: '+t );
+			return;
+		}
+		if( maxTemperature != null && t > maxTemperature ) {
+			trace('invalid temperature value: '+h );
+			return;
+		}
+		if( minHumidity != null && h < minHumidity ) {
+			trace('invalid humidity value: '+h );
+			return;
+		}
+		if( maxHumidity != null && h > maxHumidity ) {
+			trace('invalid humidity value: '+h );
+			return;
+		}
+
 		if( precision > 0 ) {
 			t = t.precision( precision );
 			h = h.precision( precision );
 		}
+		
 		onData( { temperature: t, humidity: h } );
 	}
 }
