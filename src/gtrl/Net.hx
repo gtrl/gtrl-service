@@ -2,6 +2,7 @@ package gtrl;
 
 import js.node.http.IncomingMessage;
 import js.node.http.ServerResponse;
+import js.npm.ws.Server;
 import js.npm.ws.Server as WebSocketServer;
 import js.npm.ws.WebSocket;
 
@@ -24,8 +25,8 @@ class Net extends js.node.http.Server {
 
 		if( websocket ) {
 			ws = new WebSocketServer( { server: this, clientTracking: true } );
-			ws.on( 'connection', function(e) {
-				println( 'client connected' );
+			ws.on( Connection, function(s,r) {
+				println( 'Client connected '+r.connection.remoteAddress );
 			});
 			ws.on( 'close', function(e) {
 				println( 'client disconnected' );
@@ -66,6 +67,8 @@ class Net extends js.node.http.Server {
 		switch path {
 		case '': //
 		case 'setup':
+			//TODO create json from actual service setup in use
+			//for( room in Service.rooms )
 			res.end( Json.stringify( Service.setup ) );
 		case 'data':
 			switch req.method {
@@ -75,7 +78,7 @@ class Net extends js.node.http.Server {
 				req.on( 'end', function() {
 					var data = Json.parse( str );
 					var time = Date.fromTime( data.time );
-					Service.db.get( 'dht', { from: time.getTime() }, function(e,rows:Array<Dynamic>){
+					Service.db.get( 'dht', { sensor : data.sensor, from: time.getTime() }, function(e,rows:Array<gtrl.db.Entry>){
 						if( e != null ) {
 							trace( e );
 							//TODO
