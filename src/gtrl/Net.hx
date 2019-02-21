@@ -26,10 +26,13 @@ class Net extends js.node.http.Server {
 		if( websocket ) {
 			ws = new WebSocketServer( { server: this, clientTracking: true } );
 			ws.on( Connection, function(s,r) {
-				println( 'Client connected '+r.connection.remoteAddress );
-			});
-			ws.on( 'close', function(e) {
-				println( 'client disconnected' );
+				var ip = r.connection.remoteAddress;
+				println( 'Client $ip connected' );
+				s.once( Close, function(status,message) {
+					var info = 'Client $ip disconnected '+status;
+					if( message != null ) info += ' $message';
+					println( info );
+				} );
 			});
 			ws.on( 'message', function(e) {
 				trace(e);
