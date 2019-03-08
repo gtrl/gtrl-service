@@ -3,6 +3,9 @@ package gtrl.sensor.driver;
 import js.node.ChildProcess;
 import js.node.child_process.ChildProcess as ChildProcessObject;
 
+/**
+	Abstract Driver using external process
+**/
 class ProcessDriver extends Driver {
 
 	//TODO global/shared process
@@ -12,7 +15,7 @@ class ProcessDriver extends Driver {
 	public var args(default,null) : Array<String>;
 
 	var proc : ChildProcessObject;
-	var pendingCallback : Buffer->Void;
+	var pendingCallback : Error->Buffer->Void;
 
 	public function new( ?type = 'process', cmd : String, ?args : Array<String> ) {
 		super( type );
@@ -36,8 +39,10 @@ class ProcessDriver extends Driver {
 		});
 	}
 
+	/*
 	public override function read( callback : Buffer->Void ) {
 	}
+	*/
 
 	public override function toString() : String {
 		return '[process:cmd,$args]';

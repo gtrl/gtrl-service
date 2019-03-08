@@ -1,5 +1,7 @@
 package gtrl;
 
+import gtrl.Sensor;
+
 typedef Size = {
 	var w : Int;
 	var h : Int;
@@ -9,13 +11,12 @@ typedef Size = {
 class Room {
 
 	public dynamic function onData<T>( s : Sensor<T>, d : T ) {}
-	public dynamic function onError<T>( s : Sensor<T>, e : Sensor.ErrorType ) {}
+	//public dynamic function onError<T>( s : Sensor<T>, e : Sensor.ErrorType ) {}
+	public dynamic function onError<T>( s : Sensor<T>, e : Error ) {}
 
 	public var name(default,null) : String;
 	public var size(default,null) : Size;
 	public var sensors(default,null) : Array<Sensor<Any>>;
-
-	//var fan : Array<Dynamic>;
 
 	public function new( name : String, size : Size, sensors : Array<Sensor<Any>> ) {
 		this.name = name;
@@ -31,10 +32,10 @@ class Room {
 					s.onData = function(data){
 						handleSensorData( s, data );
 					}
-					s.onError = function(type){
-						handleSensorError( s, type );
+					s.onError = function(e){
+						//handleSensorError( s, type );
+						handleSensorError( s, e );
 					}
-					//s.onError = handleSensorData;
 					if( ++i < sensors.length ) {
 						connectNext( i );
 					} else {
@@ -47,28 +48,36 @@ class Room {
 	}
 
 	public function start() {
-		for( s in sensors ) s.start();
+		for( s in sensors ) s.startInterval();
 	}
 
-	/*
 	public function stop() {
-		for( s in sensors ) {
-			s.stop();
-		}
+		for( s in sensors ) s.stopInterval();
 	}
-	*/
 
 	public function toString() : String {
-		var str = '$name';
-		for( s in sensors ) str += ' ['+s.toString()+']';
-		return str;
+		return '$name '+sensors.map( s -> return '[${s.toString()}]' ).join(' ');
 	}
 
 	function handleSensorData<T>( sensor : Sensor<T>, data : T ) {
 		onData( sensor, data );
 	}
 
+	function handleSensorError<T>( sensor : Sensor<T>, error : Error ) {
+		onError( sensor, error );
+	}
+
+	/*
 	function handleSensorError<T>( sensor : Sensor<T>, type : Sensor.ErrorType ) {
 		onError( sensor, type );
+		//onError( new SensorError( sensor, type ) );
 	}
+	*/
+
+	/*
+	function handleSensorError( e : SensorError ) {
+		//onError( sensor, type );
+		onError( sensor, type );
+	}
+	*/
 }

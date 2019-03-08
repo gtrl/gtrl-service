@@ -3,8 +3,20 @@ package gtrl;
 import gtrl.sensor.Driver;
 
 enum abstract ErrorType(Int) to Int {
-	var read_fail = 0;
+	var read_error = 0;
 	var value_invalid = 1;
+}
+
+class SensorError extends js.Error {
+
+	public final sensor : Sensor<Any>;
+	public final type : ErrorType;
+
+	public function new( sensor : Sensor<Any>, type : ErrorType, ?message : String ) {
+		super( message );
+		this.sensor = sensor;
+		this.type = type;
+	}
 }
 
 @:keep
@@ -12,11 +24,15 @@ enum abstract ErrorType(Int) to Int {
 class Sensor<T> {
 
 	public dynamic function onData( data : T ) {}
-	public dynamic function onError( type : ErrorType ) {}
+	public dynamic function onError( err : Error ) {}
+	//public dynamic function onError( type : ErrorType ) {}
+	//public dynamic function onError( e : SensorError ) {}
 
-	public var type(default,null) : String;
-	public var name(default,null) : String;
+	public final type : String;
+	public final name : String;
+	
 	public var interval(default,null) : Int;
+	public var reading(default,null) = false;
 
 	var driver : Driver;
 	var timer : Timer;
@@ -33,29 +49,46 @@ class Sensor<T> {
 	}
 
 	public function disconnect() : Promise<Nil> {
-		stop();
+		stopTimer();
 		return driver.disconnect();
 	}
 
-	public function start() {
-		stop();
+	public function startInterval( immediate = true ) {
+		stopTimer();
+		if( immediate ) driver.read( handleData );
 		timer = new Timer( interval * 1000 );
-		timer.run = function() {
-			driver.read( handleData );
-		}
+		timer.run = handleTimer;
 	}
 
-	public function stop() {
+	public function stopInterval() {
+		stopTimer();
+	}
+
+	/*
+	public function update() {
+		stopTimer();
+		//driver.read( handleData );
+		startTimer();
+	}
+	*/
+
+	public function toString() : String {
+		return '(name=$name,driver=${driver.toString()})';
+	}
+
+	function stopTimer() {
 		if( timer != null ) {
 			timer.stop();
 			timer = null;
 		}
 	}
 
-	public function toString() : String {
-		return '(name=$name,driver=${driver.toString()})';
+	function handleTimer() {
+		//reading = true;
+		driver.read( handleData );
 	}
 
-	function handleData( buf : Buffer ) {
+	function handleData( err : Error, buf : Buffer ) {
+		reading = false;
 	}
 }

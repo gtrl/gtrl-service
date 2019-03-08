@@ -37,9 +37,8 @@ class SerialDriver extends Driver {
 			while( cursor < chunk.length ) {
 				cache[cachePosition++] = chunk[cursor++];
 				if( cachePosition == MSG_SIZE ) {
-					//trace("FULLMSG");
 					var driver = drivers.get( pendingQueue.shift() );
-					driver.handleData( Buffer.from( cache ) );
+					driver.handleResult( null, Buffer.from( cache ) );
 					cache = Buffer.alloc( MSG_SIZE );
 					cachePosition = 0;
 					if( pendingQueue.length > 0 ) {
@@ -55,7 +54,9 @@ class SerialDriver extends Driver {
 	public var pin(default,null) : Int;
 
 	var port : SerialPort;
-	var pendingCallback : Buffer->Void;
+	var pendingCallback : Error->Buffer->Void;
+	//var pendingDataCallback : Buffer->Void;
+	//var pendingErrorCallback : Error->Void;
 
 	public function new( path : String, pin : Int, baud : BaudRate = _115200 ) {
 		super( 'serial' );
@@ -76,21 +77,24 @@ class SerialDriver extends Driver {
 		});
 	}
 
-	public override function read( callback : Buffer->Void ) {
+	/*
+	//public override function read( onData : Buffer->Void, onError : Error->Void ) {
+	public override function read( onResult : Error->Buffer->Void ) {
 		if( pendingCallback != null ) {
 			trace("ALREADY PENDING "+pin );
 			return;
 		}
 		pendingQueue.push( pin );
-		pendingCallback = callback;
+		pendingCallback = onResult;
+		//pendingErrorCallback = onError;
 		switch pendingQueue.length {
 		case 1: send( CMD_READ );
 		case i if( i >= 16 ): trace('MAX PENDING ');
 		default:
-			//trace("PENDING "+pendingQueue.length );
-
+			trace("PENDING "+pendingQueue.length );
 		}
 	}
+	*/
 
 	function send( cmd : Int = CMD_READ ) {
 		var buf = Buffer.alloc( 2 );
@@ -101,8 +105,8 @@ class SerialDriver extends Driver {
 		});
 	}
 
-	function handleData( buf : Buffer ) {
-		pendingCallback( buf );
+	function handleResult( err : Error, buf : Buffer ) {
+		pendingCallback( err, buf );
 		pendingCallback = null;
 	}
 }

@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 
-import sys
-import struct
 import Adafruit_DHT
+import struct
+import sys
 
 while True:
     pin = int.from_bytes(sys.stdin.buffer.raw.read(1), byteorder='little')

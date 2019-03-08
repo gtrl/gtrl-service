@@ -27,7 +27,7 @@ class Net extends js.node.http.Server {
 			ws = new WebSocketServer( { server: this, clientTracking: true } );
 			ws.on( Connection, function(s,r) {
 				var ip = r.connection.remoteAddress;
-				println( 'Client $ip connected' );
+				println( '$ip connected' );
 				s.once( Close, function(status,message) {
 					var info = 'Client $ip disconnected '+status;
 					if( message != null ) info += ' $message';
@@ -79,9 +79,9 @@ class Net extends js.node.http.Server {
 				var str = '';
 				req.on( 'data', function(c) str += c );
 				req.on( 'end', function() {
-					var data = Json.parse( str );
-					var time = Date.fromTime( data.time );
-					Service.db.get( 'dht', { sensor : data.sensor, from: time.getTime() }, function(e,rows:Array<gtrl.db.Entry>){
+					var filter = Json.parse( str );
+					var time = Date.fromTime( filter.time );
+					Service.db.get( 'dht', { room: filter.room, sensor : filter.sensor, from: time.getTime() }, function(e,rows:Array<gtrl.db.Entry>){
 						if( e != null ) {
 							trace( e );
 							//TODO

@@ -16,12 +16,12 @@ class Driver {
 		return Promise.resolve();
 	}
 
-	public function read( callback : Buffer->Void ) {
+	//TODO: nope
+	//public function read() : Promise<Buffer> {
+	public function read( onResult : Error->Buffer->Void ) {
 	}
 
 	public function toString() : String {
 		return throw new AbstractMethod();
 	}
-
-
 }

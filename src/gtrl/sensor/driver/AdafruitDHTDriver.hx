@@ -1,5 +1,7 @@
 package gtrl.sensor.driver;
 
+import gtrl.Sensor;
+
 /**
 	Relies on gtrl/bin/read_dht.py script to read DHT sensors.
 
@@ -19,11 +21,13 @@ class AdafruitDHTDriver extends ProcessDriver {
 		this.sensorType = sensorType;
 	}
 
-	public override function read( callback : Buffer->Void ) {
+	public override function read( onResult : Error->Buffer->Void ) {
 		if( pendingCallback != null ) {
-			trace("ALREADY PENDING REQUEST" );
+			trace("ALREADY PENDING REQUEST [ping="+pin+"]" );
+			//TODO: report error
+			pendingCallback = null;
 		} else {
-			pendingCallback = callback;
+			pendingCallback = onResult;
 			var buf = Buffer.alloc( 2 );
 			buf.writeUInt8( pin, 0 );
 			buf.writeUInt8( sensorType, 1 );
@@ -37,10 +41,14 @@ class AdafruitDHTDriver extends ProcessDriver {
 
 	override function handleData( buf : Buffer ) {
 		if( buf.length == MSG_SIZE ) {
-			pendingCallback( buf );
+			pendingCallback( null, buf );
 		} else {
 			var code = buf.readInt8(0);
 			trace("INCOMPLETE MSG [pin="+pin+"code="+code+",len="+buf.length+"]");
+			//TODO: report error
+			pendingCallback( new Error( "INCOMPLETE MSG [pin="+pin+"code="+code+",len="+buf.length+"]" ), null );
+			//pendingCallback( new SensorError( "INCOMPLETE MSG [pin="+pin+"code="+code+",len="+buf.length+"]" ), null );
+			//pendingErrorCallback( new SensorError( read_error ) );
 		}
 		pendingCallback = null;
 	}

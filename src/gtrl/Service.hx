@@ -13,19 +13,17 @@ private typedef Config = {
 class Service {
 
 	public static var isSystemService(default,null) = false;
-
 	public static var config(default,null) : Config;
 	public static var setup(default,null) : Setup;
-
 	public static var rooms(default,null) = new Array<Room>();
 	public static var db(default,null) : Db;
 
 	static var net : Net;
-	static var readline : js.node.readline.Interface;
+	//static var readline : js.node.readline.Interface;
 
 	static function start( configFile : String, setupFile : String ) {
 
-		println( 'Starting [config=$configFile,setup=$setupFile]' );
+		println( 'Starting [$configFile,$setupFile]' );
 
 		stop();
 
@@ -45,6 +43,7 @@ class Service {
 				Service.db = db;
 
 				for( r in setup ) {
+					println( "["+r.name+"]" );
 					var sensors = new Array<Sensor<Any>>();
 					for( s in r.sensors ) {
 						if( s.enabled != null && !s.enabled ) {
@@ -55,7 +54,7 @@ class Service {
 						var d : Dynamic = s.driver;
 						switch d.type {
 						case 'adafruit_dht':
-							driver = new gtrl.sensor.driver.AdafruitDHTDriver( d.options.cmd, d.options.pin );
+							driver = new gtrl.sensor.driver.AdafruitDHTDriver( d.options.cmd, d.options.pin, d.options.type );
 						case 'dummy':
 							driver = new gtrl.sensor.driver.DummyDriver();
 						case 'process':
@@ -72,16 +71,16 @@ class Service {
 						default:
 							trace('Unknown sensor type: '+s.type );
 						}
-						println( 'Sensor ['+s.name+'] ready' );
+						println( '╰─ ['+s.name+'] ready' );
 					}
 					rooms.push( new Room( r.name, r.size, sensors ) );
 				}
 				function initRoom( i : Int ) {
 					var room = rooms[i];
-					room.init().then( e -> {
+					room.init().then( function(e) {
 						println( "Room["+room.name+"] ready");
 						room.onData = (s,d) -> handleSensorData( room, s, d );
-						room.onError = (s,t) -> handleSensorError( room, s, t );
+						room.onError = (s,e) -> handleSensorError( room, s, e );
 						if( ++i < rooms.length ) {
 							initRoom( i );
 						} else {
@@ -106,7 +105,8 @@ class Service {
 
 	static function stop() {
 		//for( r in rooms ) r.stop();
-		if( readline != null ) readline.close();
+		//if( readline != null ) readline.close();
+		for( room in rooms ) room.stop();
 		if( net != null ) net.stop();
 		if( db != null ) db.close( function(?e){
 			if( e != null ) trace(e);
@@ -126,7 +126,7 @@ class Service {
 
 	static function handleSensorData<T>( room : Room, sensor : Sensor<T>, data : T ) {
 		var now = Date.now();
-		log( '${room.name}:${sensor.name} '+Reflect.fields( data ).map( f -> return f+':'+Reflect.field( data, f ) ), now );
+		log( '${room.name}:${sensor.name} '+Reflect.fields( data ).map( f -> return '$f:'+Reflect.field( data, f ) ).join(' '), now );
 		if( db != null ) {
 			db.insert( "dht", room.name, sensor.name, data, now, function(?e){
 				if( e != null ) trace(e);
@@ -142,7 +142,10 @@ class Service {
 		}
 	}
 
-	static function handleSensorError<T>( room : Room, sensor : Sensor<T>, type : Sensor.ErrorType ) {
+	static function handleSensorError<T>( room : Room, sensor : Sensor<T>, error : Error ) {
+		//TODO
+		trace(error);
+		/*
 		var now = Date.now();
 		log( 'ERROR: ${room.name}:${sensor.name}:$type', now );
 		if( db != null ) {
@@ -150,6 +153,7 @@ class Service {
 				if( e != null ) trace(e);
 			});
 		}
+		*/
 	}
 
 	public static function log( msg : String, ?time : Date ) {
@@ -165,14 +169,24 @@ class Service {
 		exitIf( !System.isRaspberryPi(), 'not a rasperry pi device' );
 		#end
 
+		var args = Sys.args();
+		//TODO: var cmd = args.shift();
+
 		var configFile = 'config.json';
 		var setupFile = 'setup.json';
 
 		var argsHandler : {getDoc:Void->String,parse:Array<Dynamic>->Void};
 		argsHandler = hxargs.Args.generate([
-			//@doc("Path to db") ["-db"] => (file:String) -> config.db = file,
-			//@doc("Host name/address")["-host"] => (name:String) -> config.host = name,
-			//@doc("Port number")["-port"] => (number:Int) -> config.port = number,
+			@doc("Backup log.db")["backup","bak"] => function( ?dir : String ) {
+				if( dir == null ) dir = 'dat';
+				exitIf( !FileSystem.exists( dir ), 'Directory [$dir] not found' );
+				exitIf( !FileSystem.isDirectory( dir ), 'Path is not a directory [$dir]' );
+				var file = 'log.'+DateTools.format( Date.now(), "%Y-%m-%d_%H:%M:%S" )+'.db';
+				var path = '$dir/$file';
+				exitIf( FileSystem.exists( path ), 'File [$path] already exists' );
+				sys.io.File.copy( 'log.db', path );
+				exit( 'Copied log.db to $path' );
+			},
 			@doc("Path to config file")["--config","-c"] => function( ?path : String ) {
 				exitIf( !FileSystem.exists( path ), 'Config file [$path] not found' );
 				configFile = path;
@@ -182,13 +196,12 @@ class Service {
 				setupFile = path;
 			},
 			["--service"] => function() isSystemService = true,
-			@doc("Print usage")["--help","-h"] => function() {
+			@doc("Print usage")["--help","-help","-h"] => function() {
 				exit( 'Usage : gtrl <cmd> [params]\n'+argsHandler.getDoc(), 1 );
 			},
 			_ => arg -> exit( 'Unknown parameter: $arg', 1 )
 		]);
-
-		argsHandler.parse( Sys.args() );
+		argsHandler.parse( args );
 
 		start( configFile, setupFile ).then( function(_){
 			//println( 'ready' );
