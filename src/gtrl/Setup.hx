@@ -9,7 +9,7 @@ typedef RoomSize = {
 typedef SensorSetup = {
 	name : String,
 	type : String,
-	interval : Int, // sec
+	interval : Null<Int>, // sec
 	enabled: Null<Bool>,
 	driver : {
 		type : String,
@@ -20,6 +20,7 @@ typedef SensorSetup = {
 typedef RoomSetup = {
 	name : String,
 	size : RoomSize,
+	interval : Null<Int>, // sec
 	sensors : Array<SensorSetup>
 }
 

@@ -45,6 +45,7 @@ class Service {
 				for( r in setup ) {
 					println( "["+r.name+"]" );
 					var sensors = new Array<Sensor<Any>>();
+					var interval = (r.interval != null) ? r.interval : 60;
 					for( s in r.sensors ) {
 						if( s.enabled != null && !s.enabled ) {
 							println( s.name+' disabled' );
@@ -66,7 +67,7 @@ class Service {
 						}
 						switch s.type {
 						case 'dht':
-							var sensor = new gtrl.sensor.DHTSensor( s.name, driver, s.interval );
+							var sensor = new gtrl.sensor.DHTSensor( s.name, driver, (s.interval != null) ? s.interval : interval );
 							sensors.push( cast sensor );
 						default:
 							trace('Unknown sensor type: '+s.type );
