@@ -21,6 +21,7 @@ typedef RoomSetup = {
 	name : String,
 	size : RoomSize,
 	interval : Null<Int>, // sec
+	//enabled: Null<Bool>, //TODO
 	sensors : Array<SensorSetup>
 }
 

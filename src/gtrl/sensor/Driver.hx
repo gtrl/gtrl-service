@@ -16,8 +16,6 @@ class Driver {
 		return Promise.resolve();
 	}
 
-	//TODO: nope
-	//public function read() : Promise<Buffer> {
 	public function read( onResult : Error->Buffer->Void ) {
 	}
 

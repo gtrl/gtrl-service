@@ -1,5 +1,7 @@
 package gtrl;
 
+#if nodejs
+
 import js.node.http.IncomingMessage;
 import js.node.http.ServerResponse;
 import js.npm.ws.Server;
@@ -29,7 +31,7 @@ class Net extends js.node.http.Server {
 				var ip = r.connection.remoteAddress;
 				println( '$ip connected' );
 				s.once( Close, function(status,message) {
-					var info = 'Client $ip disconnected '+status;
+					var info = '$ip disconnected '+status;
 					if( message != null ) info += ' $message';
 					println( info );
 				} );
@@ -100,6 +102,16 @@ class Net extends js.node.http.Server {
 					}
 				});
 			}
+		case 'read':
+			trace("REQUESTED SENSOR READ");
+			//TODO: filter
+			for( r in Service.rooms ) {
+				r.readSensors();
+			}
+			res.end( Json.stringify( {} ) );
 		}
 	}
 }
+
+#end
+

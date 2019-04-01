@@ -55,6 +55,10 @@ class Room {
 		for( s in sensors ) s.stopInterval();
 	}
 
+	public function readSensors() {
+		for( s in sensors ) s.read();
+	}
+
 	public function toString() : String {
 		return '$name '+sensors.map( s -> return '[${s.toString()}]' ).join(' ');
 	}

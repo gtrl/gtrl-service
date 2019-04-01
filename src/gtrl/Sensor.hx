@@ -30,7 +30,8 @@ class Sensor<T> {
 
 	public final type : String;
 	public final name : String;
-	
+
+	//public var enabled : bool;
 	public var interval(default,null) : Int;
 	public var reading(default,null) = false;
 
@@ -71,6 +72,16 @@ class Sensor<T> {
 		startTimer();
 	}
 	*/
+
+	public function read() {
+		//driver.read( handleData );
+		if( reading ) {
+			trace("ALREADY READING");
+		} else {
+			stopInterval();
+			startInterval( true );
+		}
+	}
 
 	public function toString() : String {
 		return '(name=$name,driver=${driver.toString()})';

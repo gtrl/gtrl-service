@@ -46,7 +46,8 @@ class AdafruitDHTDriver extends ProcessDriver {
 			var code = buf.readInt8(0);
 			trace("INCOMPLETE MSG [pin="+pin+"code="+code+",len="+buf.length+"]");
 			//TODO: report error
-			pendingCallback( new Error( "INCOMPLETE MSG [pin="+pin+"code="+code+",len="+buf.length+"]" ), null );
+			if( pendingCallback != null )
+				pendingCallback( new Error( "INCOMPLETE MSG [pin="+pin+"code="+code+",len="+buf.length+"]" ), null );
 			//pendingCallback( new SensorError( "INCOMPLETE MSG [pin="+pin+"code="+code+",len="+buf.length+"]" ), null );
 			//pendingErrorCallback( new SensorError( read_error ) );
 		}

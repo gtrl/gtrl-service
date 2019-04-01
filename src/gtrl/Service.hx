@@ -1,5 +1,7 @@
 package gtrl;
 
+#if nodejs
+
 import om.System;
 
 private typedef Config = {
@@ -211,3 +213,5 @@ class Service {
 		});
 	}
 }
+
+#end
