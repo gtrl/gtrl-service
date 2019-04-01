@@ -15,6 +15,7 @@ install:
 	cp gtrl.sh $(INSTALL_DIR)/bin/$(PROJECT)
 	chmod +x $(INSTALL_DIR)/bin/$(PROJECT)
 	cp gtrl.service /etc/systemd/system/
+	systemctl daemon-reload
 
 uninstall:
 	rm -f $(INSTALL_DIR)/lib/$(PROJECT)
