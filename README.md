@@ -18,18 +18,30 @@ make install
 ```
 
 
-## Run
+## Usage
 
 ```sh
-## Optional reload systemd if gtrl.service changed
-systemctl daemon-reload
+node service.js --help
+Usage : gtrl <cmd> [params]
+[backup | bak] <dir>   : Backup log.db
+[--config | -c] <path> : Path to config file
+[--setup | -s] <path>  : Path to setup file
+[--help | -help | -h]  : Print usage
+```
 
-## Start service
+### Service
+
+Start service
+```sh
 systemctl start gtrl.service
+```
 
-## Show log
+Show log
+```sh
 journalctl -u gtrl
+```
 
-## Follow log
+Follow log
+```sh
 journalctl --follow -u gtrl
 ```
