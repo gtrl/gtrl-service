@@ -31,7 +31,7 @@
 				"driver": {
 					"type": "adafruit_dht",
 					"options": {
-							"pin": 22
+						"pin": 22
 					}
 				}
 			}
