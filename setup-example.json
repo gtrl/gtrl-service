@@ -29,10 +29,10 @@
 				"name": "BOT",
 				"type": "dht",
 				"driver": {
-						"type": "adafruit_dht",
-						"options": {
-								"pin": 22
-						}
+					"type": "adafruit_dht",
+					"options": {
+							"pin": 22
+					}
 				}
 			}
 		]
