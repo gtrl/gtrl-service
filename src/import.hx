@@ -2,8 +2,8 @@
 import haxe.Timer;
 import haxe.Timer.delay;
 
-import js.Error;
-import js.Promise;
+import js.lib.Error;
+import js.lib.Promise;
 
 #if nodejs
 import js.Node.console;

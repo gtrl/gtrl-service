@@ -7,7 +7,7 @@ enum abstract ErrorType(Int) to Int {
 	var value_invalid = 1;
 }
 
-class SensorError extends js.Error {
+class SensorError extends js.lib.Error {
 
 	public final sensor : Sensor<Any>;
 	public final type : ErrorType;

@@ -53,7 +53,7 @@ class Net extends js.node.http.Server {
 
 	public function broadcast( msg : Dynamic ) {
 		var str = Json.stringify( msg );
-		var clients : js.Set<Dynamic> = untyped ws.clients;
+		var clients : js.lib.Set<Dynamic> = untyped ws.clients;
 		clients.forEach( function(v,k,s){
 			v.send( str, e -> {
 				if( e != null ) trace( e );
