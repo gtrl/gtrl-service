@@ -58,7 +58,7 @@ class SerialDriver extends Driver {
 	//var pendingDataCallback : Buffer->Void;
 	//var pendingErrorCallback : Error->Void;
 
-	public function new( path : String, pin : Int, baud : BaudRate = _115200 ) {
+	public function new( path : String, pin : Int, baud : BaudRate = B115200 ) {
 		super( 'serial' );
 		this.pin = pin;
 		port = getSerialPort( path, baud );
