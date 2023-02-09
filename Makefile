@@ -23,5 +23,4 @@ uninstall:
 	rm -f /etc/systemd/system/$(PROJECT).service
 
 clean:
-	rm -f service.js
-	rm -f service.js.map
+	rm -f service.js*

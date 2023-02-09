@@ -21,6 +21,7 @@ class Service {
 	public static var db(default,null) : Db;
 
 	static var net : Net;
+	//static var xmpp : XMPPClient;
 	//static var readline : js.node.readline.Interface;
 
 	static function start( configFile : String, setupFile : String ) {
@@ -58,6 +59,8 @@ class Service {
 						switch d.type {
 						case 'adafruit_dht':
 							driver = new gtrl.sensor.driver.AdafruitDHTDriver( d.options.cmd, d.options.pin, d.options.type );
+						//case 'cam':
+						//	driver = new gtrl.sensor.driver.PicamDriver();
 						case 'dummy':
 							driver = new gtrl.sensor.driver.DummyDriver();
 						case 'process':

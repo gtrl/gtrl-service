@@ -1,6 +1,7 @@
 
 import haxe.Timer;
 import haxe.Timer.delay;
+import haxe.io.Bytes;
 
 import js.lib.Error;
 import js.lib.Promise;

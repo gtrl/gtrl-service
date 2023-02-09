@@ -10,12 +10,12 @@ enum abstract DHTSensorType(Int) from Int to Int {
 }
 */
 
-typedef Data = {
+typedef DHTData = {
 	var temperature : Float;
 	var humidity : Float;
 }
 
-class DHTSensor extends Sensor<Data> {
+class DHTSensor extends Sensor<DHTData> {
 
 	public static inline var TYPE = 'dht';
 

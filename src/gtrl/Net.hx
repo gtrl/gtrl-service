@@ -83,7 +83,11 @@ class Net extends js.node.http.Server {
 				req.on( 'end', function() {
 					var filter = Json.parse( str );
 					var time = Date.fromTime( filter.time );
-					Service.db.get( 'dht', { room: filter.room, sensor : filter.sensor, from: time.getTime() }, function(e,rows:Array<gtrl.db.Entry>){
+					Service.db.get( 'dht', {
+						room: filter.room,
+						sensor : filter.sensor,
+						from: time.getTime()
+					}, function(e,rows:Array<gtrl.db.Entry>){
 						if( e != null ) {
 							trace( e );
 							//TODO

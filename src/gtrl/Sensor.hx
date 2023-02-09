@@ -38,6 +38,8 @@ class Sensor<T> {
 	var driver : Driver;
 	var timer : Timer;
 
+	//TODO: sensor specific options as object, not arguments
+	//function new( type : String, name : String, driver : Driver, settings : S ) {
 	function new( type : String, name : String, driver : Driver, interval : Int ) {
 		this.type = type;
 		this.name = name;
@@ -54,7 +56,7 @@ class Sensor<T> {
 		return driver.disconnect();
 	}
 
-	public function startInterval( immediate = true ) {
+	public function startInterval( immediate = true ) { //TODO remove?
 		stopTimer();
 		if( immediate ) driver.read( handleData );
 		timer = new Timer( interval * 1000 );

@@ -1,8 +1,9 @@
 -js service.js
 -main gtrl.Service
 -lib hxargs
+-lib hxmpp
 -lib hxnodejs
-#-lib hxnodejs-dht-sensor
+-lib hxnodejs-dht-sensor
 -lib hxnodejs-serialport
 -lib hxnodejs-sqlite3
 -lib hxnodejs-ws
@@ -10,8 +11,9 @@
 -lib om.net
 -lib om.term
 -cp src
--D gtrl_service
 -dce full
+-D gtrl_service
+-D no-deprecation-warnings
 -debug
 #-D source-header=
 #--macro includeFile('shebang_header')
